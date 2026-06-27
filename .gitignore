@@ -1,0 +1,28 @@
+.next
+node_modules
+dist
+out
+tsconfig.tsbuildinfo
+.DS_Store
+
+# Local secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Codex/local runtime artifacts
+.agents
+.codex
+outputs
+work
+
+# Large source/backfill artifacts not needed for production deploy
+data/*.xlsx
+data/*.bak-*
+data/*.backup.json
+data/redbook_words.enriched.json
+data/*.build-report.json
+data/*.skipped.json
+data/*.duplicates.json
+data/*.stats.json

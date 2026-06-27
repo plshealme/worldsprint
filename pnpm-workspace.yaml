@@ -1,0 +1,4 @@
+allowBuilds:
+  sharp: false
+minimumReleaseAgeExclude:
+  - autoprefixer@10.5.1

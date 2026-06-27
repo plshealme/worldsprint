@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WordSprint">
+  <rect width="512" height="512" rx="96" fill="#1d4ed8"/>
+  <path d="M120 148h272v48H170v84c0 53 36 88 88 88 47 0 82-28 89-72h51c-8 73-64 120-140 120-83 0-138-57-138-136V148Z" fill="#fff"/>
+  <path d="M210 236h144v44H210z" fill="#bfdbfe"/>
+</svg>
