@@ -11,6 +11,7 @@ if (hasReleaseKeystore) {
 
 configurations.configureEach {
     resolutionStrategy {
+        force "androidx.browser:browser:1.8.0"
         force "androidx.core:core:1.15.0"
         force "androidx.core:core-ktx:1.15.0"
     }
@@ -51,6 +52,9 @@ android {
 
 dependencies {
     constraints {
+        implementation("androidx.browser:browser:1.8.0") {
+            because "androidx.browser 1.10.0 requires AGP 8.9.1+ and compileSdk 36; WordSprint TWA currently uses AGP 8.7.3 and compileSdk 35."
+        }
         implementation("androidx.core:core:1.15.0") {
             because "androidx.core 1.17.0 requires AGP 8.9.1+ and compileSdk 36; WordSprint TWA currently uses AGP 8.7.3 and compileSdk 35."
         }
@@ -59,6 +63,7 @@ dependencies {
         }
     }
 
+    implementation "androidx.browser:browser:1.8.0"
     implementation "androidx.core:core:1.15.0"
     implementation "androidx.core:core-ktx:1.15.0"
     implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.7.2"
