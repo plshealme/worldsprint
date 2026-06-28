@@ -18,7 +18,7 @@ interface RegisterPayload {
 
 const authConfigMissingMessage = "服务器登录配置缺失，请检查部署环境变量。";
 const registerUnavailableMessage = "注册服务暂不可用，请稍后再试。";
-const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
+const usernamePattern = /^[\p{L}\p{N}_]{2,20}$/u;
 
 function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
@@ -26,7 +26,7 @@ function normalizeUsername(username: string) {
 
 function validateUsername(username: string) {
   if (!usernamePattern.test(username)) {
-    return "用户名需为 3–20 个字符，只能包含英文字母、数字和下划线。";
+    return "用户名需为 2–20 个字符，只能包含中文、英文字母、数字和下划线。";
   }
   return "";
 }

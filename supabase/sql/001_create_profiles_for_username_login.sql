@@ -6,7 +6,11 @@ create table if not exists public.profiles (
   role text not null default 'user',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint profiles_username_format_check check (username ~ '^[A-Za-z0-9_]{3,20}$'),
+  constraint profiles_username_format_check check (
+    char_length(username) between 2 and 20
+    and username = btrim(username)
+    and username !~ '\s'
+  ),
   constraint profiles_username_normalized_check check (username_normalized = lower(username)),
   constraint profiles_role_check check (role in ('user', 'admin'))
 );

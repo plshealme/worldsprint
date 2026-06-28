@@ -8,7 +8,7 @@ import { Button } from "@/components/common/Button";
 import { postAuthProfile } from "@/lib/authClient";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
 
-const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
+const usernamePattern = /^[\p{L}\p{N}_]{2,20}$/u;
 
 function friendlyRegisterError(error: unknown) {
   const message = error instanceof Error ? error.message : "注册失败，请稍后重试。";
@@ -68,7 +68,7 @@ export default function RegisterPage() {
     setNotice("");
     const cleanUsername = username.trim();
     if (!usernamePattern.test(cleanUsername)) {
-      setError("用户名需为 3–20 个字符，只能包含英文字母、数字和下划线。");
+      setError("用户名需为 2–20 个字符，只能包含中文、英文字母、数字和下划线。");
       return;
     }
     if (password !== confirmPassword) {
@@ -133,7 +133,7 @@ export default function RegisterPage() {
               onChange={(event) => setUsername(event.target.value)}
               required
             />
-            <p className="mt-2 text-xs leading-5 text-subtle">3–20 个字符，可使用英文字母、数字和下划线，不区分大小写。</p>
+            <p className="mt-2 text-xs leading-5 text-subtle">2–20 个字符，可使用中文、英文字母、数字和下划线。</p>
           </label>
 
           <label className="mt-4 block">
