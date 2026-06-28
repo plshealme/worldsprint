@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">WordSprint</string>
     <string name="launch_url">https://43.128.23.159.sslip.io</string>
-    <string name="file_provider_authority">com.plshealme.wordsprint.fileprovider</string>
-    <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://43.128.23.159.sslip.io\"}}]</string>
+    <string name="loading">正在加载 WordSprint...</string>
+    <string name="network_error">网络连接失败，请检查网络后重试</string>
+    <string name="retry">重试</string>
 </resources>

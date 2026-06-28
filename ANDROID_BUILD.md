@@ -1,12 +1,8 @@
-# WordSprint Android TWA 内测包构建说明
+# WordSprint Android 内测包构建说明
 
-WordSprint Android 内测版使用 Google 推荐的 Trusted Web Activity (TWA) 方案。Android App 只做受信任外壳，实际内容来自：
+当前 Android 内测 APK 优先使用原生 WebView 方案，以保证国内安卓手机能稳定安装、打开和登录。
 
-```text
-https://43.128.23.159.sslip.io
-```
-
-这不是普通 WebView。
+之前的 TWA 方案依赖手机里存在 Chrome 或支持 Trusted Web Activity 的浏览器。部分国内安卓机没有 Chrome，或者默认浏览器不支持 TWA，可能出现闪退、无法打开、降级为浏览器栏等问题。因此当前内测阶段先使用 WebView APK；后续正式上架前可以再评估 TWA、Capacitor 或更完整的原生封装方案。
 
 ## 当前配置
 
@@ -18,7 +14,28 @@ https://43.128.23.159.sslip.io
 - versionCode：`12`
 - 权限：仅 `INTERNET`
 - Android 项目目录：`android/`
-- 构建方式：Gradle Wrapper + Android Browser Helper TWA
+- 当前封装方式：Android WebView
+
+## WebView 行为
+
+当前 WebView APK 会：
+
+- 打开 `https://43.128.23.159.sslip.io`
+- 启用 JavaScript
+- 启用 DOM storage / localStorage
+- 使用 HTTPS 加载页面
+- User-Agent 追加 `WordSprintApp/1.2.0`
+- 支持返回键：WebView 可后退时先后退，否则退出 App
+- 加载中显示简单 loading
+- 加载失败显示“网络连接失败，请检查网络后重试”和重试按钮
+
+不会申请：
+
+- 定位
+- 相机
+- 麦克风
+- 通讯录
+- 存储
 
 ## 本地环境准备
 
@@ -56,13 +73,13 @@ cd android
 
 ## GitHub Actions 自动构建 debug APK
 
-已新增 workflow：
+workflow 路径：
 
 ```text
 .github/workflows/android-build.yml
 ```
 
-手动触发方式：
+手动触发：
 
 1. 打开 GitHub 仓库。
 2. 进入 `Actions`。
@@ -70,7 +87,7 @@ cd android
 4. 点击 `Run workflow`。
 5. 等待构建完成。
 
-构建完成后下载 APK：
+下载 APK：
 
 1. 进入本次 workflow run。
 2. 找到页面底部 `Artifacts`。
@@ -98,53 +115,7 @@ android/app/build/outputs/apk/debug/*.apk
 5. 安装后打开 WordSprint。
 6. 验证登录、Practice、Exam、Review、Mistakes 是否正常。
 
-如果打开后出现浏览器栏，说明 TWA 的 Digital Asset Links 指纹还没有匹配；App 仍可测试，但还不是完全受信任的全屏 TWA。
-
-## Digital Asset Links
-
-TWA 要想全屏无浏览器栏，需要网站和 Android 包互相验证。
-
-Web 端文件：
-
-```text
-public/.well-known/assetlinks.json
-```
-
-线上地址：
-
-```text
-https://43.128.23.159.sslip.io/.well-known/assetlinks.json
-```
-
-当前 `assetlinks.json` 里仍有占位：
-
-```text
-REPLACE_WITH_RELEASE_SHA256_FINGERPRINT
-```
-
-需要替换为实际签名证书的 SHA-256 fingerprint。
-
-## debug keystore fingerprint
-
-Debug APK 使用 debug keystore 签名。如果想让 GitHub Actions 构建出的 debug APK 也通过 TWA 验证，需要把 debug keystore 的 SHA-256 也加入 `assetlinks.json`。
-
-本地 debug keystore 指纹：
-
-Windows：
-
-```powershell
-keytool -list -v -keystore $env:USERPROFILE\.android\debug.keystore -alias androiddebugkey -storepass android -keypass android
-```
-
-macOS / Linux：
-
-```bash
-keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-```
-
-GitHub Actions 的 debug keystore 是 CI 环境生成的，不建议长期依赖它做正式验证。内测如果必须验证全屏 TWA，更推荐使用 release keystore 构建测试包。
-
-## release keystore fingerprint
+## Release keystore
 
 生成 release keystore：
 
@@ -157,36 +128,6 @@ keytool -genkeypair \
   -keysize 2048 \
   -validity 10000
 ```
-
-查看 release SHA-256：
-
-```bash
-keytool -list -v -keystore android/wordsprint-release.jks -alias wordsprint
-```
-
-把输出中的 `SHA256` 写入 `public/.well-known/assetlinks.json`。
-
-可以同时放 debug 和 release 两个 fingerprint：
-
-```json
-[
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.plshealme.wordsprint",
-      "sha256_cert_fingerprints": [
-        "DEBUG_SHA256",
-        "RELEASE_SHA256"
-      ]
-    }
-  }
-]
-```
-
-修改 `assetlinks.json` 后必须重新部署 Web 站点。
-
-## 配置 release 签名
 
 创建 `android/key.properties`：
 
@@ -248,13 +189,42 @@ android/app/build/outputs/bundle/release/
 
 AAB 主要用于 Google Play。内测分发给同学时，APK 更直接。
 
+## 关于 TWA / Digital Asset Links
+
+项目仍保留了 TWA 相关说明和 `public/.well-known/assetlinks.json`，但当前内测 APK 已优先使用 WebView。
+
+TWA 要想全屏无浏览器栏，需要站点和 Android 包互相验证：
+
+- Android 包名：`com.plshealme.wordsprint`
+- Web 文件：`/.well-known/assetlinks.json`
+- 签名证书：debug 或 release keystore 的 SHA-256 fingerprint
+
+可以同时放 debug 和 release 两个 fingerprint：
+
+```json
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.plshealme.wordsprint",
+      "sha256_cert_fingerprints": [
+        "DEBUG_SHA256",
+        "RELEASE_SHA256"
+      ]
+    }
+  }
+]
+```
+
+修改 `assetlinks.json` 后必须重新部署 Web 站点。
+
 ## 后续换正式域名
 
 正式域名上线后需要同步修改：
 
 1. `android/app/src/main/res/values/strings.xml`
    - `launch_url`
-   - `asset_statements`
 2. `android/app/src/main/AndroidManifest.xml`
    - intent-filter 里的 `android:host`
 3. `android/twa-manifest.json`
@@ -267,7 +237,6 @@ AAB 主要用于 Google Play。内测分发给同学时，APK 更直接。
 
 - 使用正式域名，避免临时 IP 域名。
 - 使用长期保存的 release keystore。
-- 确认 `assetlinks.json` 里的 SHA-256 是 release keystore 指纹。
 - 准备应用截图、隐私政策、应用介绍、分类和内容评级。
 - 检查登录、注册、忘记密码在国内网络下是否稳定。
 - 国内商店可能要求软著、ICP备案、隐私合规材料。
@@ -277,4 +246,4 @@ AAB 主要用于 Google Play。内测分发给同学时，APK 更直接。
 - 不要提交 keystore。
 - 不要提交签名密码。
 - 不要把 Supabase service role key 或任何 `.env` 写入 Android 项目。
-- WordSprint 学习记录仍保存在浏览器 localStorage 中；TWA 打开的是同一 HTTPS 站点。
+- WordSprint 学习记录仍保存在 WebView 的 localStorage 中。
