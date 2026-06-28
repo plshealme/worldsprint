@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { setAuthCookies } from "@/lib/authCookies";
 import { profileFromSupabaseUser } from "@/lib/supabase";
-import { createSupabaseServerClient, isSupabaseNetworkError, supabaseNetworkErrorMessage } from "@/lib/supabaseServer";
+import {
+  createSupabaseServerClient,
+  isSupabaseNetworkError,
+  logSupabaseAuthDiagnostic,
+  supabaseNetworkErrorMessage,
+} from "@/lib/supabaseServer";
 
 export const runtime = "nodejs";
 
@@ -69,17 +74,22 @@ export async function POST(request: Request) {
 
   const devProfile = devProfileFor(email, password);
   if (devProfile) {
+    logSupabaseAuthDiagnostic("login:dev-bypass", { phase: "dev-bypass" });
     return NextResponse.json({ ok: true, profile: devProfile });
   }
+
+  logSupabaseAuthDiagnostic("login:init", { phase: "create-client" });
 
   let supabase;
   try {
     supabase = createSupabaseServerClient();
-  } catch {
+  } catch (error) {
+    logSupabaseAuthDiagnostic("login:create-client-error", { phase: "create-client", error });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 500 });
   }
 
   if (!supabase) {
+    logSupabaseAuthDiagnostic("login:missing-env", { phase: "create-client", status: 503 });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 503 });
   }
 
@@ -91,6 +101,7 @@ export async function POST(request: Request) {
 
     if (error) {
       const status = isSupabaseNetworkError(error) ? 502 : 401;
+      logSupabaseAuthDiagnostic("login:supabase-error", { phase: "sign-in", error, status });
       return NextResponse.json(
         { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : invalidCredentialsMessage },
         { status },
@@ -98,13 +109,20 @@ export async function POST(request: Request) {
     }
 
     if (!data.user || !data.session) {
+      logSupabaseAuthDiagnostic("login:missing-session", { phase: "sign-in", status: 502 });
       return NextResponse.json({ ok: false, error: loginUnavailableMessage }, { status: 502 });
     }
 
+    logSupabaseAuthDiagnostic("login:success", { phase: "sign-in" });
     const response = NextResponse.json({ ok: true, profile: profileFromSupabaseUser(data.user) });
     setAuthCookies(response, data.session);
     return response;
   } catch (error) {
+    logSupabaseAuthDiagnostic("login:request-error", {
+      phase: "sign-in",
+      error,
+      status: isSupabaseNetworkError(error) ? 502 : 500,
+    });
     return NextResponse.json(
       {
         ok: false,
