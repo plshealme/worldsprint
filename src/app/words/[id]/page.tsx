@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { useWord } from "@/lib/useWords";
 import { formatPercent, masteryName, shortDateTime } from "@/lib/utils";
-import { wordSourceLabel } from "@/lib/words";
+import { wordSourceLabel } from "@/lib/vocab";
 import type { MasteryStatus } from "@/types/word";
 
 const masteryOptions: Array<{ value: MasteryStatus; label: string }> = [

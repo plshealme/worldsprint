@@ -6,9 +6,9 @@ import { BookOpen, CheckCircle2, Heart, Plus, Search, Star, Tag, XCircle } from 
 import { Button, ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { ReviewCard } from "@/components/review/ReviewCard";
+import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { useWords } from "@/lib/useWords";
 import { formatPercent, masteryName } from "@/lib/utils";
-import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/words";
 import type { MasteryStatus, WordEntry } from "@/types/word";
 
 const pageSize = 10000;

@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, BookOpen, ClipboardList, RotateCcw } from "lucide-react";
 import { ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
-import { computeLearningStats, unitStats } from "@/lib/stats";
+import { computeLearningStats } from "@/lib/stats";
+import { unitStats, type UnitStatsRow } from "@/lib/unitStats";
 import { formatDuration, formatPercent, shortDateTime } from "@/lib/utils";
 import { PUBLIC_VOCAB_NAME, PUBLIC_VOCAB_RANGE } from "@/lib/vocab";
 import type { TestRecordSummary } from "@/types/test";
@@ -23,12 +24,34 @@ export default function StatsPage() {
   const { progress, mistakes, records } = useAppState();
   const [recordTab, setRecordTab] = useState<RecordTab>("practice");
   const [unitFilter, setUnitFilter] = useState<UnitFilter>("all");
+  const [units, setUnits] = useState<UnitStatsRow[]>([]);
+  const [unitsLoading, setUnitsLoading] = useState(true);
   const stats = computeLearningStats(progress, mistakes, records);
-  const units = unitStats(progress, mistakes);
   const practiceRecords = records.filter((record) => record.mode === "practice");
   const examRecords = records.filter((record) => record.mode === "exam");
   const recentExam = examRecords.slice(0, 30).reverse();
   const selectedRecords = recordTab === "practice" ? practiceRecords : examRecords;
+
+  useEffect(() => {
+    let cancelled = false;
+    setUnitsLoading(true);
+    unitStats(progress, mistakes)
+      .then((nextUnits) => {
+        if (!cancelled) {
+          setUnits(nextUnits);
+          setUnitsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUnits([]);
+          setUnitsLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mistakes, progress]);
 
   const insight = useMemo(() => {
     const startedUnits = units.filter((unit) => unit.attempts > 0);
@@ -159,10 +182,11 @@ export default function StatsPage() {
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {filteredUnits.map((unit) => (
+          {unitsLoading ? <p className="rounded-lg bg-surface p-4 text-sm text-subtle">正在加载单元统计...</p> : null}
+          {!unitsLoading && filteredUnits.map((unit) => (
             <UnitCard key={unit.key} unit={unit} />
           ))}
-          {filteredUnits.length === 0 ? <p className="rounded-lg bg-surface p-4 text-sm text-subtle">当前筛选下暂无单元。</p> : null}
+          {!unitsLoading && filteredUnits.length === 0 ? <p className="rounded-lg bg-surface p-4 text-sm text-subtle">当前筛选下暂无单元。</p> : null}
         </div>
       </section>
 
@@ -249,7 +273,7 @@ function RecordsList({ records, mode }: { records: TestRecordSummary[]; mode: Re
   );
 }
 
-function UnitCard({ unit }: { unit: ReturnType<typeof unitStats>[number] }) {
+function UnitCard({ unit }: { unit: UnitStatsRow }) {
   const started = unit.attempts > 0;
   const progress = unit.total ? unit.mastered / unit.total : 0;
   return (

@@ -7,7 +7,7 @@ import { Button } from "@/components/common/Button";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { useWords } from "@/lib/useWords";
-import { wordSourceLabel } from "@/lib/words";
+import { wordSourceLabel } from "@/lib/vocab";
 
 export default function SearchPage() {
   const { getProgress, addTempWord, personalTags, togglePersonalTag } = useAppState();

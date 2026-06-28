@@ -4,7 +4,7 @@ import type { PracticeMode, Question, QuestionOption, QuestionType, TestSetup } 
 import type { WordEntry, WordProgress } from "@/types/word";
 import { shuffleArray as shuffle } from "./shuffle";
 import { uid } from "./storage";
-import { wordSectionUnitKey } from "./words";
+import { wordSectionUnitKey } from "./sectionUnit";
 
 export interface QuestionGenerationResult {
   questions: Question[];

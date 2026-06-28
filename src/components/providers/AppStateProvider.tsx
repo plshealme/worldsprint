@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import redbookWordsJson from "../../../data/redbook_words.json";
 import { applyMistakeUpdates } from "@/lib/mistakeLogic";
 import { toRecordSummary } from "@/lib/scoring";
 import {
@@ -82,8 +81,6 @@ interface RedbookDemoWord {
   appOrder?: number;
   word: string;
 }
-
-const demoWords = redbookWordsJson as RedbookDemoWord[];
 
 function defaultProgress(wordId: string, word = ""): WordProgress {
   return {
@@ -645,61 +642,67 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const generateDemoLearningData = useCallback(() => {
-    const shuffled = [...demoWords].sort(() => Math.random() - 0.5);
-    const count = Math.min(shuffled.length, 20 + Math.floor(Math.random() * 31));
-    const selected = shuffled.slice(0, count);
-    const now = Date.now();
-    const nextProgress: Record<string, WordProgress> = {};
-    const nextMistakes: MistakeItem[] = [];
+    void fetch("/data/redbook_words.json", { cache: "force-cache" })
+      .then((response) => (response.ok ? response.json() : []))
+      .then((redbookWordsJson: RedbookDemoWord[]) => {
+        const demoWords = redbookWordsJson as RedbookDemoWord[];
+        const shuffled = [...demoWords].sort(() => Math.random() - 0.5);
+        const count = Math.min(shuffled.length, 20 + Math.floor(Math.random() * 31));
+        const selected = shuffled.slice(0, count);
+        const now = Date.now();
+        const nextProgress: Record<string, WordProgress> = {};
+        const nextMistakes: MistakeItem[] = [];
 
-    selected.forEach((word, index) => {
-      const sourceId = word.sourceId ?? word.source_id ?? word.appOrder;
-      if (!sourceId) {
-        return;
-      }
-      const wordId = `redbook-${sourceId}`;
-      const attempts = 1 + Math.floor(Math.random() * 8);
-      const wrongCount = index % 4 === 0 ? 1 + Math.floor(Math.random() * Math.min(3, attempts)) : Math.floor(Math.random() * 2);
-      const correctCount = Math.max(0, attempts - wrongCount);
-      const isMistake = wrongCount > 0 && index % 3 === 0;
-      const dueReview = index % 2 === 0;
-      const lastPracticedAt = new Date(now - (index + 1) * 3600_000).toISOString();
-      const masteryLevel: MasteryStatus =
-        wrongCount >= 2 ? "unknown" : wrongCount === 1 ? "vague" : correctCount >= 4 ? "mastered" : "known";
-      nextProgress[wordId] = {
-        ...defaultProgress(wordId, word.word),
-        attempts,
-        correct: correctCount,
-        correctCount,
-        wrong: wrongCount,
-        wrongCount,
-        mastery: masteryLevel,
-        masteryLevel,
-        isMistake,
-        lastAnswerCorrect: wrongCount === 0,
-        lastPracticedAt,
-        lastAnsweredAt: lastPracticedAt,
-        nextReviewAt: new Date(now + (dueReview ? -1 : 24 + index) * 3600_000).toISOString(),
-      };
+        selected.forEach((word, index) => {
+          const sourceId = word.sourceId ?? word.source_id ?? word.appOrder;
+          if (!sourceId) {
+            return;
+          }
+          const wordId = `redbook-${sourceId}`;
+          const attempts = 1 + Math.floor(Math.random() * 8);
+          const wrongCount = index % 4 === 0 ? 1 + Math.floor(Math.random() * Math.min(3, attempts)) : Math.floor(Math.random() * 2);
+          const correctCount = Math.max(0, attempts - wrongCount);
+          const isMistake = wrongCount > 0 && index % 3 === 0;
+          const dueReview = index % 2 === 0;
+          const lastPracticedAt = new Date(now - (index + 1) * 3600_000).toISOString();
+          const masteryLevel: MasteryStatus =
+            wrongCount >= 2 ? "unknown" : wrongCount === 1 ? "vague" : correctCount >= 4 ? "mastered" : "known";
+          nextProgress[wordId] = {
+            ...defaultProgress(wordId, word.word),
+            attempts,
+            correct: correctCount,
+            correctCount,
+            wrong: wrongCount,
+            wrongCount,
+            mastery: masteryLevel,
+            masteryLevel,
+            isMistake,
+            lastAnswerCorrect: wrongCount === 0,
+            lastPracticedAt,
+            lastAnsweredAt: lastPracticedAt,
+            nextReviewAt: new Date(now + (dueReview ? -1 : 24 + index) * 3600_000).toISOString(),
+          };
 
-      if (isMistake) {
-        nextMistakes.push({
-          wordId,
-          wrongCount,
-          correctStreak: 0,
-          lastWrongAt: lastPracticedAt,
-          reason: "记忆模糊",
-          source: "practice",
-          active: true,
+          if (isMistake) {
+            nextMistakes.push({
+              wordId,
+              wrongCount,
+              correctStreak: 0,
+              lastWrongAt: lastPracticedAt,
+              reason: "记忆模糊",
+              source: "practice",
+              active: true,
+            });
+          }
         });
-      }
-    });
 
-    setProgress((current) => ({ ...current, ...nextProgress }));
-    setMistakes((current) => {
-      const generatedIds = new Set(nextMistakes.map((item) => item.wordId));
-      return [...current.filter((item) => !generatedIds.has(item.wordId)), ...nextMistakes];
-    });
+        setProgress((current) => ({ ...current, ...nextProgress }));
+        setMistakes((current) => {
+          const generatedIds = new Set(nextMistakes.map((item) => item.wordId));
+          return [...current.filter((item) => !generatedIds.has(item.wordId)), ...nextMistakes];
+        });
+      })
+      .catch(() => undefined);
   }, []);
 
   const clearMistakes = useCallback(() => {

@@ -4,12 +4,11 @@ import { useMemo, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
-import { officialCategories } from "@/data/mockWords";
 import { generateQuestions, getAvailableWords, type QuestionGenerationResult } from "@/lib/questionGenerator";
+import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { readJson, writeJson } from "@/lib/storage";
 import { useWords } from "@/lib/useWords";
 import { PUBLIC_VOCAB_NAME, PUBLIC_VOCAB_RANGE, PUBLIC_VOCAB_SCOPE } from "@/lib/vocab";
-import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/words";
 import type { PracticeMode, QuestionType, TestMode, TestSetup } from "@/types/test";
 
 const setupWordPageSize = 10000;
@@ -80,7 +79,7 @@ export function TestSetupWizard({
   const [setup, setSetup] = useState<TestSetup>(() =>
     withEnglishOnlyRatio(readJson<TestSetup>(storageKey, {
       mode,
-      category: officialCategories[0] ?? "考研英语",
+      category: "考研英语",
       section: "",
       practiceMode: mode === "practice" ? "mixed" : undefined,
       units: [],

@@ -5,3 +5,8 @@ export const PUBLIC_VOCAB_NAME = "考研英语大纲词汇";
 export const PUBLIC_VOCAB_RANGE = "基础词 U1–U30";
 export const PUBLIC_VOCAB_SCOPE = `${PUBLIC_VOCAB_NAME} · ${PUBLIC_VOCAB_RANGE}`;
 export const PUBLIC_VOCAB_INTERNAL_LABEL = "basic-u1-u30-clean-v1";
+
+export function wordSourceLabel(source?: string) {
+  if (source === "supabase" || source?.startsWith("redbook")) return PUBLIC_VOCAB_NAME;
+  return "开发示例词库";
+}

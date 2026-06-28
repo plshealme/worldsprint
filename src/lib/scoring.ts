@@ -2,7 +2,7 @@ import type { Answer, Question, QuestionType, TestMode, TestRecordSummary, TestR
 import { calculateReportXp } from "./xp";
 import { uid } from "./storage";
 import { typeName } from "./utils";
-import { sectionUnitLabelFromKey, wordSectionUnitKey } from "./words";
+import { sectionUnitLabelFromKey, wordSectionUnitKey } from "./sectionUnit";
 
 function accuracy(correct: number, total: number) {
   return total === 0 ? 0 : correct / total;
