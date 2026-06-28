@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { applyMistakeUpdates } from "@/lib/mistakeLogic";
 import { toRecordSummary } from "@/lib/scoring";
+import { clearStoredAccessToken } from "@/lib/authClient";
 import {
   activeUserId,
   defaultSettings,
@@ -72,6 +73,7 @@ const activeProfileStorageKey = "activeProfile";
 interface AuthApiResponse {
   ok?: boolean;
   profile?: UserProfile;
+  accessToken?: string;
   error?: string;
 }
 
@@ -202,9 +204,12 @@ function mergePersistedProfile(profile: UserProfile) {
   };
 }
 
-function persistActiveProfile(profile: UserProfile) {
+function persistActiveProfile(profile: UserProfile, accessToken?: string) {
   writeJson(scopedKey(profile.id, "profile"), profile);
   writeJson(activeProfileStorageKey, profile);
+  if (accessToken) {
+    writeJson("supabaseAccessToken", accessToken);
+  }
 }
 
 async function postAuth(path: string, payload?: Record<string, unknown>) {
@@ -220,6 +225,7 @@ async function postAuth(path: string, payload?: Record<string, unknown>) {
     throw new Error(data?.error ?? "认证服务暂不可用。");
   }
 
+  persistActiveProfile(data.profile, data.accessToken);
   return data.profile;
 }
 
@@ -240,6 +246,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const resetSessionState = useCallback(() => {
     setActiveUserId(null);
     removeKey(activeProfileStorageKey);
+    clearStoredAccessToken();
     setUser(null);
     setSettings(defaultSettings);
     setProgress({});
@@ -250,15 +257,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hydrateProfile = useCallback((profile: UserProfile) => {
-    const startedAt = performance.now();
     const mergedProfile = mergePersistedProfile(profile);
-    const readStartedAt = performance.now();
     const data = readUserData(mergedProfile.id);
-    const readUserDataMs = Math.round(performance.now() - readStartedAt);
     const isCurrentVocab = data.vocabVersion === VOCAB_VERSION;
-    const normalizeStartedAt = performance.now();
     const nextProgress = isCurrentVocab ? normalizeProgressMap(data.progress) : {};
-    const normalizeProgressMs = Math.round(performance.now() - normalizeStartedAt);
     setUser(mergedProfile);
     setSettings(data.settings);
     setProgress(nextProgress);
@@ -268,9 +270,6 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setPersonalTags(data.tags);
     setActiveUserId(mergedProfile.id);
     persistActiveProfile(mergedProfile);
-    console.info(
-      `[auth-perf] hydrateProfile total=${Math.round(performance.now() - startedAt)}ms readUserData=${readUserDataMs}ms normalizeProgress=${normalizeProgressMs}ms progressCount=${Object.keys(nextProgress).length}`,
-    );
   }, []);
 
   const hydrateAccount = useCallback(

@@ -5,34 +5,6 @@ export const supabaseNetworkErrorMessage =
   "暂时无法连接登录服务，请稍后再试。";
 export const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-type AuthDiagnosticDetails = {
-  phase?: string;
-  status?: number;
-  error?: unknown;
-};
-
-function errorStatus(error: unknown) {
-  if (error && typeof error === "object" && "status" in error) {
-    const status = (error as { status?: unknown }).status;
-    return typeof status === "number" ? status : undefined;
-  }
-  return undefined;
-}
-
-function errorName(error: unknown) {
-  return error instanceof Error ? error.name : typeof error;
-}
-
-function errorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "string") {
-    return error;
-  }
-  return undefined;
-}
-
 export function supabaseAuthEnvState() {
   return {
     nodeEnv: process.env.NODE_ENV,
@@ -41,25 +13,6 @@ export function supabaseAuthEnvState() {
     supabaseAnonKeyExists: Boolean(supabaseAnonKey),
     supabaseServiceRoleKeyExists: Boolean(supabaseServiceRoleKey),
   };
-}
-
-export function logSupabaseAuthDiagnostic(event: string, details: AuthDiagnosticDetails = {}) {
-  const status = details.status ?? errorStatus(details.error);
-  const safeDetails = {
-    event,
-    ...supabaseAuthEnvState(),
-    phase: details.phase,
-    errorName: details.error ? errorName(details.error) : undefined,
-    errorMessage: details.error ? errorMessage(details.error) : undefined,
-    errorStatus: status,
-  };
-
-  if (details.error || (typeof status === "number" && status >= 400)) {
-    console.error("[wordsprint-auth]", safeDetails);
-    return;
-  }
-
-  console.log("[wordsprint-auth]", safeDetails);
 }
 
 export function createSupabaseServerClient(accessToken?: string) {

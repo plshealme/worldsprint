@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
-import { useAppState } from "@/components/providers/AppStateProvider";
+import { postAuthProfile } from "@/lib/authClient";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
 
 const featureTags = ["Practice 即时反馈", "Exam 正式测试", "Review 到期复习", "Mistakes 易错词巩固"];
@@ -44,7 +44,6 @@ function friendlyLoginError(error: unknown) {
 }
 
 export default function LoginPage() {
-  const { login } = useAppState();
   const router = useRouter();
   const submittingRef = useRef(false);
   const [identifier, setIdentifier] = useState("");
@@ -56,17 +55,16 @@ export default function LoginPage() {
     event.preventDefault();
     if (submittingRef.current) return;
 
-    const startedAt = performance.now();
     submittingRef.current = true;
     setError("");
     setIsSubmitting(true);
     let shouldResetSubmitState = true;
     try {
-      await login(identifier, password);
-      const submitMs = Math.round(performance.now() - startedAt);
+      await postAuthProfile("/api/auth/login", {
+        identifier: identifier.trim().toLowerCase(),
+        password,
+      });
       window.sessionStorage.setItem("wordsprint:authRedirecting", "1");
-      window.sessionStorage.setItem("wordsprint:loginRouteStart", String(performance.now()));
-      console.info(`[auth-perf] client loginSubmit=${submitMs}ms routeToHome=start`);
       shouldResetSubmitState = false;
       router.replace("/");
     } catch (err) {

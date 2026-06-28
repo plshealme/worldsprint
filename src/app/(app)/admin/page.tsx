@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { authFetch } from "@/lib/authClient";
 import { PUBLIC_VOCAB_NAME, PUBLIC_VOCAB_RANGE } from "@/lib/vocab";
 
 type AccessState = "checking" | "allowed" | "denied";
@@ -68,7 +69,7 @@ interface ApiErrorResponse {
 }
 
 export default function AdminPage() {
-  const { user, logout } = useAppState();
+  const { ready, user, logout } = useAppState();
   const router = useRouter();
   const [access, setAccess] = useState<AccessState>("checking");
   const [overview, setOverview] = useState<AdminOverview | null>(null);
@@ -83,6 +84,10 @@ export default function AdminPage() {
   }, [logout, router]);
 
   const loadAdminData = useCallback(async () => {
+    if (!ready) {
+      return;
+    }
+
     if (!user) {
       router.replace("/login");
       return;
@@ -99,9 +104,26 @@ export default function AdminPage() {
     setError("");
 
     try {
+      const statusResponse = await authFetch("/api/auth/admin-status");
+      if (statusResponse.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      if (statusResponse.status === 403) {
+        setAccess("denied");
+        return;
+      }
+
+      const statusData = (await statusResponse.json().catch(() => null)) as { ok?: boolean; isAdmin?: boolean } | null;
+      if (!statusResponse.ok || statusData?.isAdmin !== true) {
+        setAccess("denied");
+        return;
+      }
+
       const [overviewResponse, usersResponse] = await Promise.all([
-        fetch("/api/admin/overview", { credentials: "include" }),
-        fetch("/api/admin/users", { credentials: "include" }),
+        authFetch("/api/admin/overview"),
+        authFetch("/api/admin/users"),
       ]);
 
       if (overviewResponse.status === 401 || usersResponse.status === 401) {
@@ -138,7 +160,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [handleUnauthorized, router, user]);
+  }, [handleUnauthorized, ready, router, user]);
 
   useEffect(() => {
     void loadAdminData();
@@ -188,10 +210,9 @@ export default function AdminPage() {
     setError("");
 
     try {
-      const response = await fetch(path, {
+      const response = await authFetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
       const data = (await response.json().catch(() => null)) as ApiErrorResponse | null;
@@ -218,14 +239,14 @@ export default function AdminPage() {
     }
   }
 
-  if (access === "checking" && loading) {
+  if (!ready || (access === "checking" && loading)) {
     return (
       <section className="rounded-lg border border-line bg-panel p-8 text-center shadow-soft">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand">
           <Shield size={22} />
         </div>
-        <h1 className="mt-4 text-2xl font-bold">正在验证管理员权限...</h1>
-        <p className="mt-2 text-sm text-subtle">验证完成前不会跳转首页。</p>
+        <h1 className="mt-4 text-2xl font-bold">正在验证登录状态...</h1>
+        <p className="mt-2 text-sm text-subtle">确认登录和管理员权限后会进入控制台。</p>
       </section>
     );
   }

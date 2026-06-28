@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import {
   createSupabaseServerClient,
   isSupabaseNetworkError,
-  logSupabaseAuthDiagnostic,
   supabaseNetworkErrorMessage,
 } from "@/lib/supabaseServer";
 
@@ -29,12 +28,10 @@ export async function POST(request: Request) {
   try {
     supabase = createSupabaseServerClient();
   } catch (error) {
-    logSupabaseAuthDiagnostic("forgot-password:create-client-error", { phase: "create-client", error });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 500 });
   }
 
   if (!supabase) {
-    logSupabaseAuthDiagnostic("forgot-password:missing-env", { phase: "create-client", status: 503 });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 503 });
   }
 
@@ -45,7 +42,6 @@ export async function POST(request: Request) {
 
     if (error) {
       const status = isSupabaseNetworkError(error) ? 502 : 200;
-      logSupabaseAuthDiagnostic("forgot-password:supabase-error", { phase: "reset-password", error, status });
       if (status === 502) {
         return NextResponse.json({ ok: false, error: supabaseNetworkErrorMessage }, { status });
       }
@@ -53,11 +49,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, message: successMessage });
   } catch (error) {
-    logSupabaseAuthDiagnostic("forgot-password:request-error", {
-      phase: "reset-password",
-      error,
-      status: isSupabaseNetworkError(error) ? 502 : 500,
-    });
     return NextResponse.json(
       {
         ok: false,

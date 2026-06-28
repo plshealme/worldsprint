@@ -1,11 +1,10 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { setAuthCookies } from "@/lib/authCookies";
 import { profileFromSupabaseUser } from "@/lib/supabase";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
   isSupabaseNetworkError,
-  logSupabaseAuthDiagnostic,
   supabaseNetworkErrorMessage,
 } from "@/lib/supabaseServer";
 
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "密码长度不足。" }, { status: 400 });
   }
 
-  logSupabaseAuthDiagnostic("register:init", { phase: "create-client" });
 
   let supabase;
   let serviceClient;
@@ -60,12 +58,10 @@ export async function POST(request: Request) {
     supabase = createSupabaseServerClient();
     serviceClient = createSupabaseServiceRoleClient();
   } catch (error) {
-    logSupabaseAuthDiagnostic("register:create-client-error", { phase: "create-client", error });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 500 });
   }
 
   if (!supabase || !serviceClient) {
-    logSupabaseAuthDiagnostic("register:missing-env", { phase: "create-client", status: 503 });
     return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 503 });
   }
 
@@ -77,7 +73,6 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (usernameLookupError) {
-      logSupabaseAuthDiagnostic("register:profile-lookup-error", { phase: "profile-lookup", error: usernameLookupError, status: 500 });
       return NextResponse.json({ ok: false, error: registerUnavailableMessage }, { status: 500 });
     }
 
@@ -101,7 +96,6 @@ export async function POST(request: Request) {
 
     if (error) {
       const status = isSupabaseNetworkError(error) ? 502 : 400;
-      logSupabaseAuthDiagnostic("register:supabase-error", { phase: "sign-up", error, status });
       return NextResponse.json(
         { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : "注册失败，请稍后重试。" },
         { status },
@@ -109,7 +103,6 @@ export async function POST(request: Request) {
     }
 
     if (!data.user) {
-      logSupabaseAuthDiagnostic("register:missing-user", { phase: "sign-up", status: 502 });
       return NextResponse.json({ ok: false, error: registerUnavailableMessage }, { status: 502 });
     }
 
@@ -125,12 +118,10 @@ export async function POST(request: Request) {
     );
 
     if (profileError) {
-      logSupabaseAuthDiagnostic("register:profile-upsert-error", { phase: "profile-upsert", error: profileError, status: 500 });
       return NextResponse.json({ ok: false, error: "注册失败，请稍后重试。" }, { status: 500 });
     }
 
     if (!data.session) {
-      logSupabaseAuthDiagnostic("register:email-confirmation-required", { phase: "sign-up", status: 409 });
       return NextResponse.json(
         {
           ok: false,
@@ -140,19 +131,14 @@ export async function POST(request: Request) {
       );
     }
 
-    logSupabaseAuthDiagnostic("register:success", { phase: "sign-up" });
     const response = NextResponse.json({
       ok: true,
       profile: profileFromSupabaseUser(data.user, { username, email, role: "user" }),
+      accessToken: data.session.access_token,
     });
     setAuthCookies(response, data.session);
     return response;
   } catch (error) {
-    logSupabaseAuthDiagnostic("register:request-error", {
-      phase: "register",
-      error,
-      status: isSupabaseNetworkError(error) ? 502 : 500,
-    });
     return NextResponse.json(
       {
         ok: false,

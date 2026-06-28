@@ -5,7 +5,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/common/Button";
-import { useAppState } from "@/components/providers/AppStateProvider";
+import { postAuthProfile } from "@/lib/authClient";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
 
 const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
@@ -51,7 +51,6 @@ function friendlyRegisterError(error: unknown) {
 }
 
 export default function RegisterPage() {
-  const { register } = useAppState();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -79,7 +78,11 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     try {
-      await register(email, cleanUsername, password);
+      await postAuthProfile("/api/auth/register", {
+        email: email.trim().toLowerCase(),
+        username: cleanUsername,
+        password,
+      });
       router.replace("/");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";

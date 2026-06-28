@@ -37,7 +37,7 @@ export async function requireAdmin(request: Request): Promise<AdminGuardResult> 
     };
   }
 
-  const supabase = createSupabaseServerClient(accessToken);
+  const supabase = createSupabaseServerClient();
   const serviceClient = createSupabaseServiceRoleClient();
 
   if (!supabase || !serviceClient) {
@@ -47,7 +47,7 @@ export async function requireAdmin(request: Request): Promise<AdminGuardResult> 
     };
   }
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
   if (userError || !userData.user) {
     return {
       ok: false,

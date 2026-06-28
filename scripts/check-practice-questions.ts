@@ -7,8 +7,7 @@ const moduleCache = new Map<string, { exports: unknown }>();
 
 function main() {
   const { generateQuestions } = loadTsModule(path.join(root, "src/lib/questionGenerator.ts")) as typeof import("../src/lib/questionGenerator");
-  const { getRedbookJsonWordsResult } = loadTsModule(path.join(root, "src/lib/words.ts")) as typeof import("../src/lib/words");
-  const words = getRedbookJsonWordsResult({ pageSize: 10000 }).words;
+  const words = loadRedbookWords();
   const unit1Words = words.filter((word) => word.section === "\u57fa\u7840\u8bcd" && word.unit === "Unit 1" && word.choiceMeaning);
   if (unit1Words.length < 4) {
     throw new Error(`Need at least 4 usable Unit 1 words, got ${unit1Words.length}.`);
@@ -62,6 +61,62 @@ function main() {
   console.log(`B: ${counts.B}`);
   console.log(`C: ${counts.C}`);
   console.log(`D: ${counts.D}`);
+}
+
+interface RedbookJsonWord {
+  appOrder?: number;
+  sourceId?: number;
+  source_id?: number;
+  sourceOrder?: number | null;
+  source_order?: number;
+  word: string;
+  displayWord?: string | null;
+  coreMeaning?: string | null;
+  choiceMeaning?: string | null;
+  choiceUsable?: boolean | null;
+  fullMeanings?: string | null;
+  phonetic?: string | null;
+  partOfSpeech?: string | null;
+  section: string;
+  unit: number | null;
+}
+
+function loadRedbookWords(): import("../src/types/word").WordEntry[] {
+  const filePath = path.join(root, "data/redbook_words.json");
+  const words = JSON.parse(fs.readFileSync(filePath, "utf8")) as RedbookJsonWord[];
+  return words
+    .filter((word) => Boolean(word.word?.trim()))
+    .slice()
+    .sort((a, b) => redbookAppOrder(a) - redbookAppOrder(b))
+    .map((word) => {
+      const sourceId = word.sourceId ?? word.source_id ?? word.appOrder ?? 0;
+      const sourceOrder = word.sourceOrder ?? word.source_order ?? word.appOrder ?? 0;
+      return {
+        id: `redbook-${sourceId}`,
+        word: word.word,
+        displayWord: cleanNullable(word.displayWord),
+        coreMeaning: cleanNullable(word.coreMeaning) ?? "\u91ca\u4e49\u5f85\u6821\u5bf9",
+        choiceMeaning: cleanNullable(word.choiceMeaning),
+        choiceUsable: word.choiceUsable ?? undefined,
+        fullMeanings: cleanNullable(word.fullMeanings),
+        phonetic: cleanNullable(word.phonetic),
+        partOfSpeech: cleanNullable(word.partOfSpeech),
+        section: word.section,
+        unit: typeof word.unit === "number" ? `Unit ${word.unit}` : undefined,
+        sourceId,
+        sourceOrder,
+        appOrder: word.appOrder,
+      } satisfies import("../src/types/word").WordEntry;
+    });
+}
+
+function redbookAppOrder(row: RedbookJsonWord) {
+  return row.appOrder ?? row.sourceOrder ?? row.source_order ?? row.sourceId ?? row.source_id ?? 0;
+}
+
+function cleanNullable(value: string | null | undefined) {
+  const clean = value?.trim();
+  return clean ? clean : undefined;
 }
 
 function verifyHardLimit(

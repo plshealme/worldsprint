@@ -272,3 +272,21 @@ pm2 restart wordsprint
 - PWA 添加到桌面后是否能再次打开
 
 如果网页打开速度正常，但注册 / 登录失败，请先查看 PM2 或 Vercel 中的 `[wordsprint-auth]` 日志。如果确认 Supabase Auth 在国内网络不稳定，后续再考虑 auth proxy 或自建后端，不要在本部署阶段重构核心认证。
+
+## 更新后预热
+
+每次 `git pull`、`pnpm run build`、`pm2 restart wordsprint` 之后，建议在服务器本机执行一次轻量预热。这样可以让 Next.js 常用页面先完成冷启动，国内手机用户第一次打开时更稳一些。
+
+```bash
+curl -fsS http://127.0.0.1:3000/ > /dev/null || true
+curl -fsS http://127.0.0.1:3000/login > /dev/null || true
+curl -fsS http://127.0.0.1:3000/practice > /dev/null || true
+curl -fsS http://127.0.0.1:3000/review > /dev/null || true
+curl -fsS http://127.0.0.1:3000/mistakes > /dev/null || true
+curl -fsS http://127.0.0.1:3000/profile > /dev/null || true
+```
+
+说明：
+- 更新后的第一次访问变慢是正常的，因为新构建的 JS、CSS 和页面缓存需要重新建立。
+- 预热不会登录用户，也不会加载用户本地学习记录。
+- 词库 JSON 不会在登录页首屏预加载，Practice / Review / Mistakes 首次需要词库时才会运行时请求并缓存。

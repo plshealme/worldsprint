@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { AppShell } from "@/components/layout/AppShell";
-import { AppStateProvider } from "@/components/providers/AppStateProvider";
-import { PwaRegister } from "@/components/providers/PwaRegister";
 
 export const metadata: Metadata = {
   title: "WordSprint",
@@ -25,12 +22,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body>
-        <AppStateProvider>
-          <PwaRegister />
-          <AppShell>{children}</AppShell>
-        </AppStateProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
