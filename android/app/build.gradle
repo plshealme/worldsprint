@@ -12,6 +12,9 @@ def generatedAssetsDir = "$buildDir/generated/assets"
 def webWordAssetsDir = file("${rootProject.projectDir}/../public/data/words")
 
 tasks.register("syncWordAssets", Copy) {
+    doFirst {
+        delete file("$generatedAssetsDir/words")
+    }
     from(webWordAssetsDir) {
         include "*.json"
         into "words"

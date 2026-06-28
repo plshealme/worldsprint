@@ -21,11 +21,6 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Copy word bank assets
-        run: |
-          mkdir -p android/app/src/main/assets/words
-          cp public/data/words/*.json android/app/src/main/assets/words/
-
       - name: Build debug APK
         working-directory: android
         run: |
