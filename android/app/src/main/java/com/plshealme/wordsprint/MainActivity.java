@@ -29,22 +29,30 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.webkit.WebViewAssetLoader;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class MainActivity extends Activity {
+    private static final String TAG = "WordSprint";
+    private static final String LOCAL_HOST = "appassets.androidplatform.net";
+    private static final String LOCAL_LAUNCH_URL = "https://" + LOCAL_HOST + "/";
     private static final String TRUSTED_HOST = "43.128.23.159.sslip.io";
     private static final String USER_AGENT_SUFFIX = " WordSprintAndroid/1.2.0";
 
     private WebView webView;
     private View loadingView;
     private LinearLayout errorView;
+    private WebViewAssetLoader assetLoader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i(TAG, "[perf] WebView app start");
         getWindow().setStatusBarColor(Color.parseColor("#071633"));
         getWindow().setNavigationBarColor(Color.parseColor("#071633"));
 
@@ -74,6 +82,11 @@ public class MainActivity extends Activity {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void configureWebView() {
+        assetLoader = new WebViewAssetLoader.Builder()
+                .setDomain(LOCAL_HOST)
+                .addPathHandler("/", new LocalWebPathHandler())
+                .build();
+
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -104,18 +117,39 @@ public class MainActivity extends Activity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                WebResourceResponse localWordAsset = loadLocalWordAsset(request.getUrl());
-                if (localWordAsset != null) {
-                    return localWordAsset;
+                WebResourceResponse localRsc = loadLocalRscAsset(request.getUrl());
+                if (localRsc != null) {
+                    return localRsc;
+                }
+
+                WebResourceResponse localAsset = assetLoader.shouldInterceptRequest(request.getUrl());
+                if (localAsset != null) {
+                    return localAsset;
+                }
+
+                WebResourceResponse remoteWordAsset = loadRemoteWordAsset(request.getUrl());
+                if (remoteWordAsset != null) {
+                    return remoteWordAsset;
                 }
                 return super.shouldInterceptRequest(view, request);
             }
 
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-                WebResourceResponse localWordAsset = loadLocalWordAsset(Uri.parse(url));
-                if (localWordAsset != null) {
-                    return localWordAsset;
+                Uri uri = Uri.parse(url);
+                WebResourceResponse localRsc = loadLocalRscAsset(uri);
+                if (localRsc != null) {
+                    return localRsc;
+                }
+
+                WebResourceResponse localAsset = assetLoader.shouldInterceptRequest(uri);
+                if (localAsset != null) {
+                    return localAsset;
+                }
+
+                WebResourceResponse remoteWordAsset = loadRemoteWordAsset(uri);
+                if (remoteWordAsset != null) {
+                    return remoteWordAsset;
                 }
                 return super.shouldInterceptRequest(view, url);
             }
@@ -143,6 +177,9 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageCommitVisible(WebView view, String url) {
+                if (url != null && url.startsWith("https://" + LOCAL_HOST)) {
+                    Log.i(TAG, "[perf] local shell loaded");
+                }
                 hideLoading();
             }
 
@@ -168,8 +205,47 @@ public class MainActivity extends Activity {
         });
     }
 
-    private WebResourceResponse loadLocalWordAsset(Uri uri) {
-        if (!isWordDataRequest(uri)) {
+    private class LocalWebPathHandler implements WebViewAssetLoader.PathHandler {
+        @Override
+        public WebResourceResponse handle(String path) {
+            return loadLocalWebAsset(path);
+        }
+    }
+
+    private WebResourceResponse loadLocalRscAsset(Uri uri) {
+        if (!isLocalShellRequest(uri) || uri.getQueryParameter("_rsc") == null) {
+            return null;
+        }
+        String routeAsset = routeAssetPath(uri.getPath(), "rsc");
+        return openAssetResponse(routeAsset, "text/x-component");
+    }
+
+    private WebResourceResponse loadLocalWebAsset(String requestPath) {
+        String path = normalizePath(requestPath);
+        if (path.startsWith("/api/")) {
+            return null;
+        }
+
+        String assetPath;
+        if (hasFileExtension(path)) {
+            assetPath = "web" + path;
+        } else {
+            assetPath = routeAssetPath(path, "html");
+        }
+
+        WebResourceResponse response = openAssetResponse(assetPath, mimeTypeFor(assetPath));
+        if (response != null) {
+            return response;
+        }
+
+        if (!hasFileExtension(path)) {
+            return openAssetResponse("web/index.html", "text/html");
+        }
+        return null;
+    }
+
+    private WebResourceResponse loadRemoteWordAsset(Uri uri) {
+        if (!isRemoteWordDataRequest(uri)) {
             return null;
         }
 
@@ -178,19 +254,33 @@ public class MainActivity extends Activity {
             return null;
         }
 
+        WebResourceResponse response = openAssetResponse("web/data/words/" + fileName, "application/json");
+        if (response == null) {
+            response = openAssetResponse("words/" + fileName, "application/json");
+        }
+        if (response == null) {
+            Log.w(TAG, "word asset fallback network: " + fileName);
+        }
+        return response;
+    }
+
+    private WebResourceResponse openAssetResponse(String assetPath, String mimeType) {
         try {
-            InputStream stream = getAssets().open("words/" + fileName);
+            InputStream stream = getAssets().open(assetPath);
             Map<String, String> headers = new HashMap<>();
             headers.put("Cache-Control", "public, max-age=31536000, immutable");
             headers.put("Access-Control-Allow-Origin", "*");
-            return new WebResourceResponse("application/json", "utf-8", 200, "OK", headers, stream);
+            return new WebResourceResponse(mimeType, "utf-8", 200, "OK", headers, stream);
         } catch (IOException ignored) {
-            Log.w("WordSprint", "word asset fallback network: " + fileName);
             return null;
         }
     }
 
-    private boolean isWordDataRequest(Uri uri) {
+    private boolean isLocalShellRequest(Uri uri) {
+        return uri != null && LOCAL_HOST.equalsIgnoreCase(uri.getHost());
+    }
+
+    private boolean isRemoteWordDataRequest(Uri uri) {
         if (uri == null) {
             return false;
         }
@@ -204,10 +294,51 @@ public class MainActivity extends Activity {
         return TRUSTED_HOST.equalsIgnoreCase(host) && path != null && path.startsWith("/data/words/") && path.endsWith(".json");
     }
 
+    private String routeAssetPath(String path, String extension) {
+        String cleanPath = normalizePath(path);
+        if ("/".equals(cleanPath)) {
+            return "web/index." + extension;
+        }
+        if ("html".equals(extension)) {
+            return "web" + cleanPath + "/index.html";
+        }
+        return "web" + cleanPath + "." + extension;
+    }
+
+    private String normalizePath(String path) {
+        if (path == null || path.isEmpty()) {
+            return "/";
+        }
+        String cleanPath = path.startsWith("/") ? path : "/" + path;
+        if (cleanPath.length() > 1 && cleanPath.endsWith("/")) {
+            cleanPath = cleanPath.substring(0, cleanPath.length() - 1);
+        }
+        return cleanPath;
+    }
+
+    private boolean hasFileExtension(String path) {
+        int slashIndex = path.lastIndexOf('/');
+        int dotIndex = path.lastIndexOf('.');
+        return dotIndex > slashIndex;
+    }
+
+    private String mimeTypeFor(String assetPath) {
+        String lower = assetPath.toLowerCase(Locale.US);
+        if (lower.endsWith(".html")) return "text/html";
+        if (lower.endsWith(".js")) return "application/javascript";
+        if (lower.endsWith(".css")) return "text/css";
+        if (lower.endsWith(".json") || lower.endsWith(".webmanifest")) return "application/json";
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".ico")) return "image/x-icon";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".rsc")) return "text/x-component";
+        return "application/octet-stream";
+    }
+
     private boolean handleUrl(Uri uri) {
         String scheme = uri.getScheme();
         if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
-            if (TRUSTED_HOST.equalsIgnoreCase(uri.getHost())) {
+            if (LOCAL_HOST.equalsIgnoreCase(uri.getHost()) || TRUSTED_HOST.equalsIgnoreCase(uri.getHost())) {
                 return false;
             }
             openExternal(uri);
@@ -229,7 +360,7 @@ public class MainActivity extends Activity {
     private void loadHome() {
         errorView.setVisibility(View.GONE);
         showLoading();
-        webView.loadUrl(getString(R.string.launch_url));
+        webView.loadUrl(LOCAL_LAUNCH_URL);
     }
 
     private View createLoadingView() {

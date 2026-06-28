@@ -13,6 +13,7 @@ interface ForgotPasswordPayload {
 
 const authConfigMissingMessage = "服务器登录配置缺失，请检查部署环境变量。";
 const successMessage = "如果该邮箱已注册，我们会发送密码重置邮件，请前往邮箱查看。";
+const androidShellOrigin = "https://appassets.androidplatform.net";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as ForgotPasswordPayload | null;
@@ -22,7 +23,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "请输入有效邮箱。" }, { status: 400 });
   }
 
-  const origin = request.headers.get("origin") ?? new URL(request.url).origin;
+  const requestOrigin = request.headers.get("origin") ?? new URL(request.url).origin;
+  const origin = requestOrigin === androidShellOrigin ? new URL(request.url).origin : requestOrigin;
 
   let supabase;
   try {

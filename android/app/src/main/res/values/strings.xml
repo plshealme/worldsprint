@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WordSprint</string>
-    <string name="launch_url">https://43.128.23.159.sslip.io</string>
+    <string name="launch_url">https://appassets.androidplatform.net/</string>
     <string name="loading">正在加载 WordSprint...</string>
     <string name="network_error">网络连接失败，请检查网络后重试</string>
     <string name="retry">重试</string>

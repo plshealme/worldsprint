@@ -1,4 +1,5 @@
 import { readJson, removeKey, scopedKey, setActiveUserId, writeJson } from "@/lib/storage";
+import { resolveApiUrl } from "@/lib/apiClient";
 import type { UserProfile } from "@/types/user";
 
 const activeProfileStorageKey = "activeProfile";
@@ -12,7 +13,7 @@ interface AuthApiResponse {
 }
 
 export async function postAuthProfile(path: string, payload: Record<string, unknown>) {
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -51,7 +52,7 @@ export function authFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   if (accessToken && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
-  return fetch(input, {
+  return fetch(resolveApiUrl(input), {
     ...init,
     headers,
     credentials: init.credentials ?? "include",

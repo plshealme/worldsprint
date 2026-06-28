@@ -64,3 +64,7 @@ android {
 tasks.named("preBuild") {
     dependsOn("syncWordAssets")
 }
+
+dependencies {
+    implementation "androidx.webkit:webkit:1.11.0"
+}

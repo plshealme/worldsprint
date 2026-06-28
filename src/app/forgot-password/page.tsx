@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { Mail } from "lucide-react";
 import { Button } from "@/components/common/Button";
+import { resolveApiUrl } from "@/lib/apiClient";
 
 const successMessage = "如果该邮箱已注册，我们会发送密码重置邮件，请前往邮箱查看。";
 
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
     setMessage("");
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch(resolveApiUrl("/api/auth/forgot-password"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

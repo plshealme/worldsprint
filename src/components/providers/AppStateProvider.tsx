@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { applyMistakeUpdates } from "@/lib/mistakeLogic";
+import { resolveApiUrl } from "@/lib/apiClient";
 import { perfLog } from "@/lib/perfLog";
 import { toRecordSummary } from "@/lib/scoring";
 import { clearStoredAccessToken } from "@/lib/authClient";
@@ -207,7 +208,7 @@ function persistActiveProfile(profile: UserProfile, accessToken?: string) {
 }
 
 async function postAuth(path: string, payload?: Record<string, unknown>) {
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiUrl(path), {
     method: "POST",
     headers: payload ? { "Content-Type": "application/json" } : undefined,
     body: payload ? JSON.stringify(payload) : undefined,
@@ -400,7 +401,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     if (authMode === "supabase" || authMode === "dev") {
-      void fetch("/api/auth/logout", {
+      void fetch(resolveApiUrl("/api/auth/logout"), {
         method: "POST",
         credentials: "include",
       }).catch(() => undefined);
