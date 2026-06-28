@@ -26,6 +26,7 @@ const bottomNavItems = [
 ];
 
 const authPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
+const authRedirectingKey = "wordsprint:authRedirecting";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -60,9 +61,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
     if (user && isAuthPath) {
+      if (window.sessionStorage.getItem(authRedirectingKey) === "1") {
+        return;
+      }
       router.replace("/");
     }
   }, [isAuthPath, ready, router, user]);
+
+  useEffect(() => {
+    if (!isAuthPath) {
+      window.sessionStorage.removeItem(authRedirectingKey);
+    }
+  }, [isAuthPath]);
 
   const title = useMemo(() => pageTitle(pathname), [pathname]);
   const level = user ? levelFromXp(user.xp) : null;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
-import { BarChart3, ChevronRight, Database, Info, RotateCcw, Settings, Trash2 } from "lucide-react";
+import { BarChart3, ChevronRight, Database, Info, RotateCcw, Settings, Shield, Trash2 } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import type { QuestionType } from "@/types/test";
@@ -40,6 +40,7 @@ const questionPresets = [10, 20, 50] as const;
 
 export default function SettingsPage() {
   const {
+    user,
     settings,
     updateSettings,
     clearMistakes,
@@ -85,6 +86,8 @@ export default function SettingsPage() {
         <h1 className="mt-1 text-2xl font-bold text-ink">设置</h1>
         <p className="mt-2 text-sm text-subtle">你的偏好会自动保存。</p>
       </section>
+
+      {user?.isAdmin ? <AdminConsoleCard /> : null}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Panel title="外观">
@@ -247,6 +250,23 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
 
 function Segmented({ children }: { children: ReactNode }) {
   return <div className="grid grid-flow-col auto-cols-fr gap-1 rounded-lg bg-muted p-1">{children}</div>;
+}
+
+function AdminConsoleCard() {
+  return (
+    <Link className="block overflow-hidden rounded-lg border border-brand/30 bg-panel shadow-soft hover:border-brand" href="/admin">
+      <div className="bg-gradient-to-br from-brand/14 via-panel to-panel p-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+            <Shield size={20} />
+          </span>
+          <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-bold text-brand">Admin Only</span>
+        </div>
+        <h2 className="mt-4 text-lg font-bold text-ink">管理员控制台</h2>
+        <p className="mt-1 text-sm leading-6 text-subtle">词库质量、用户与系统管理工具</p>
+      </div>
+    </Link>
+  );
 }
 
 function SettingsRow({ href, icon, title, description }: { href: string; icon: ReactNode; title: string; description: string }) {

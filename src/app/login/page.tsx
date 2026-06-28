@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
@@ -46,6 +46,7 @@ function friendlyLoginError(error: unknown) {
 export default function LoginPage() {
   const { login } = useAppState();
   const router = useRouter();
+  const submittingRef = useRef(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -53,17 +54,28 @@ export default function LoginPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (submittingRef.current) return;
 
+    const startedAt = performance.now();
+    submittingRef.current = true;
     setError("");
     setIsSubmitting(true);
+    let shouldResetSubmitState = true;
     try {
       await login(identifier, password);
+      const submitMs = Math.round(performance.now() - startedAt);
+      window.sessionStorage.setItem("wordsprint:authRedirecting", "1");
+      window.sessionStorage.setItem("wordsprint:loginRouteStart", String(performance.now()));
+      console.info(`[auth-perf] client loginSubmit=${submitMs}ms routeToHome=start`);
+      shouldResetSubmitState = false;
       router.replace("/");
     } catch (err) {
       setError(friendlyLoginError(err));
     } finally {
-      setIsSubmitting(false);
+      if (shouldResetSubmitState) {
+        submittingRef.current = false;
+        setIsSubmitting(false);
+      }
     }
   }
 

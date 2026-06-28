@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, BookOpen, ClipboardList, RotateCcw, ShieldCheck, Target, TrendingUp } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { computeLearningStats } from "@/lib/stats";
@@ -43,6 +43,16 @@ export default function HomePage() {
   const dailyGoal = 20;
   const recentRecord = stats.lastRecord;
   const ctaText = todayPracticed > 0 ? "继续练习" : "开始练习";
+
+  useEffect(() => {
+    const routeStart = window.sessionStorage.getItem("wordsprint:loginRouteStart");
+    if (!routeStart) {
+      return;
+    }
+    const routeToHomeMs = Math.round(performance.now() - Number(routeStart));
+    console.info(`[auth-perf] Home mounted routeToHome=${routeToHomeMs}ms`);
+    window.sessionStorage.removeItem("wordsprint:loginRouteStart");
+  }, []);
 
   return (
     <div className="space-y-5 md:space-y-8">

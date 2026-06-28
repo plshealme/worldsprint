@@ -119,6 +119,8 @@ export default function ProfilePage() {
         <ChevronRight className="text-subtle" size={20} />
       </Link>
 
+      {user.isAdmin ? <AdminConsoleCard /> : null}
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {statItems.map((item) => (
           <div key={item.label} className="rounded-lg border border-line bg-panel p-4 shadow-soft">
@@ -160,7 +162,6 @@ export default function ProfilePage() {
           <SettingsLink href="/settings/data" icon={<Database size={18} />} title="学习数据 / 备份" description="导出、导入或管理本地学习记录" />
           <SettingsLink href="/settings/stats" icon={<BarChart3 size={18} />} title="统计详情" description="查看答题数、正确率、错题和复习数据" />
           <SettingsLink href="/settings/about" icon={<Info size={18} />} title="关于 WordSprint" description="Learn it fast. Make it last." />
-          {user.isAdmin ? <SettingsLink href="/admin" icon={<Shield size={18} />} title="Admin 管理入口" description="词库质量和管理员工具" /> : null}
           <button className="flex w-full items-center gap-3 bg-panel px-3 py-3 text-left hover:bg-muted" type="button" onClick={logout}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger">
               <LogOut size={18} />
@@ -174,6 +175,26 @@ export default function ProfilePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+function AdminConsoleCard() {
+  return (
+    <Link
+      className="block overflow-hidden rounded-lg border border-brand/30 bg-panel shadow-soft hover:border-brand"
+      href="/admin"
+    >
+      <div className="bg-gradient-to-br from-brand/14 via-panel to-panel p-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+            <Shield size={20} />
+          </span>
+          <span className="rounded-full bg-brand/10 px-2.5 py-1 text-xs font-bold text-brand">Admin Only</span>
+        </div>
+        <h2 className="mt-4 text-lg font-bold text-ink">管理员控制台</h2>
+        <p className="mt-1 text-sm leading-6 text-subtle">词库质量、用户与系统管理工具</p>
+      </div>
+    </Link>
   );
 }
 

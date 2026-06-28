@@ -250,18 +250,27 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hydrateProfile = useCallback((profile: UserProfile) => {
+    const startedAt = performance.now();
     const mergedProfile = mergePersistedProfile(profile);
+    const readStartedAt = performance.now();
     const data = readUserData(mergedProfile.id);
+    const readUserDataMs = Math.round(performance.now() - readStartedAt);
     const isCurrentVocab = data.vocabVersion === VOCAB_VERSION;
+    const normalizeStartedAt = performance.now();
+    const nextProgress = isCurrentVocab ? normalizeProgressMap(data.progress) : {};
+    const normalizeProgressMs = Math.round(performance.now() - normalizeStartedAt);
     setUser(mergedProfile);
     setSettings(data.settings);
-    setProgress(isCurrentVocab ? normalizeProgressMap(data.progress) : {});
+    setProgress(nextProgress);
     setMistakes(isCurrentVocab ? data.mistakes : []);
     setRecords(isCurrentVocab ? data.records : []);
     setTempList(isCurrentVocab ? data.tempList : []);
     setPersonalTags(data.tags);
     setActiveUserId(mergedProfile.id);
     persistActiveProfile(mergedProfile);
+    console.info(
+      `[auth-perf] hydrateProfile total=${Math.round(performance.now() - startedAt)}ms readUserData=${readUserDataMs}ms normalizeProgress=${normalizeProgressMs}ms progressCount=${Object.keys(nextProgress).length}`,
+    );
   }, []);
 
   const hydrateAccount = useCallback(
