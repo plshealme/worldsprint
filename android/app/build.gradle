@@ -8,6 +8,16 @@ def hasReleaseKeystore = keystorePropertiesFile.exists()
 if (hasReleaseKeystore) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
+def generatedAssetsDir = "$buildDir/generated/assets"
+def webWordAssetsDir = file("${rootProject.projectDir}/../public/data/words")
+
+tasks.register("syncWordAssets", Copy) {
+    from(webWordAssetsDir) {
+        include "*.json"
+        into "words"
+    }
+    into generatedAssetsDir
+}
 
 android {
     namespace "com.plshealme.wordsprint"
@@ -40,4 +50,14 @@ android {
             }
         }
     }
+
+    sourceSets {
+        main {
+            assets.srcDir(generatedAssetsDir)
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn("syncWordAssets")
 }

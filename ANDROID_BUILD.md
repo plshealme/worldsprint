@@ -247,3 +247,42 @@ TWA 要想全屏无浏览器栏，需要站点和 Android 包互相验证：
 - 不要提交签名密码。
 - 不要把 Supabase service role key 或任何 `.env` 写入 Android 项目。
 - WordSprint 学习记录仍保存在 WebView 的 localStorage 中。
+
+## APK 内置词库
+
+当前内测 APK 使用 WebView + Android assets 内置词库方案，减少国内安卓机进入 Practice / Exam / Review / Mistakes 时反复从网络下载词库的等待。
+
+Web 端统一请求：
+
+```text
+/data/words/u01.json
+/data/words/u02.json
+...
+/data/words/u30.json
+/data/words/index.json
+```
+
+浏览器版本会从站点的 `public/data/words/` 读取这些 JSON。Android WebView APK 会在 `shouldInterceptRequest` 中拦截同源 `/data/words/*.json` 请求，并从 APK assets 中读取：
+
+```text
+assets/words/u01.json
+assets/words/u02.json
+...
+assets/words/u30.json
+assets/words/index.json
+```
+
+词库内容仍然以 `public/data/words/` 为唯一来源。构建 APK 时会自动同步到 Android assets：
+
+- `android/app/build.gradle` 的 `syncWordAssets` 会在 `preBuild` 前复制词库到 generated assets。
+- GitHub Actions 的 Android workflow 也会在 `assembleDebug` 前复制 `public/data/words/*.json` 到 `android/app/src/main/assets/words/`。
+
+不要手动长期维护 `android/app/src/main/assets/words/` 中的第二份词库；该目录已加入 `.gitignore`，避免误提交重复数据。
+
+WebView 只拦截词库静态 JSON，不会缓存或拦截：
+
+- `/api/auth/*`
+- `/api/admin/*`
+- Supabase 请求
+- 带 Authorization header 的请求
+- 登录、注册、管理员接口响应

@@ -35,3 +35,4 @@ android/key.properties
 android/*.jks
 android/*.keystore
 android/**/keystores/
+android/app/src/main/assets/words/

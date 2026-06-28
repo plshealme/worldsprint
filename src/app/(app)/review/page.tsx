@@ -9,6 +9,7 @@ import { ReviewCard } from "@/components/review/ReviewCard";
 import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { useWords } from "@/lib/useWords";
 import { formatPercent, masteryName } from "@/lib/utils";
+import { OFFICIAL_CLEAN_WORD_COUNT } from "@/lib/vocab";
 import type { MasteryStatus, WordEntry } from "@/types/word";
 
 const pageSize = 10000;
@@ -22,26 +23,39 @@ const viewOptions: Array<{ value: ReviewView; label: string }> = [
 ];
 
 export default function ReviewPage() {
-  const { getProgress, toggleFavorite, addTempWord, tempList } = useAppState();
+  const { progress, getProgress, toggleFavorite, addTempWord, tempList } = useAppState();
   const [view, setView] = useState<ReviewView>("due");
   const [query, setQuery] = useState("");
   const [unit, setUnit] = useState("");
   const [mastery, setMastery] = useState<"" | MasteryStatus>("");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const { words, units, total, loading, error } = useWords({ page, pageSize, unit, q: query });
+  const dueIds = useMemo(() => {
+    const now = Date.now();
+    return Object.values(progress)
+      .filter((item) => item.nextReviewAt && new Date(item.nextReviewAt).getTime() <= now)
+      .map((item) => item.wordId);
+  }, [progress]);
+  const wordQuery =
+    view === "due"
+      ? { ids: dueIds.length ? dueIds : ["__none__"], pageSize: Math.max(dueIds.length, 1), q: query }
+      : { page, pageSize, unit, q: query };
+  const { words, units, loading, error } = useWords(wordQuery);
 
   useEffect(() => {
     setPage(1);
   }, [favoriteOnly, mastery, query, unit, view]);
 
   const dueWords = useMemo(() => {
+    if (view === "due") {
+      return words;
+    }
     const now = Date.now();
     return words.filter((word) => {
       const nextReviewAt = getProgress(word.id).nextReviewAt;
       return nextReviewAt ? new Date(nextReviewAt).getTime() <= now : false;
     });
-  }, [getProgress, words]);
+  }, [getProgress, view, words]);
 
   const browseFiltered = useMemo(
     () => filterWords(words, { query, unit, mastery, favoriteOnly, getProgress }),
@@ -68,7 +82,7 @@ export default function ReviewPage() {
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2 md:min-w-64">
-            <TopMetric label="词库" value={total} />
+            <TopMetric label="词库" value={OFFICIAL_CLEAN_WORD_COUNT} />
             <TopMetric label="收藏" value={words.filter((word) => getProgress(word.id).isFavorite).length} />
             {tempList.length > 0 ? (
               <ButtonLink href="/temp-list" variant="secondary" className="col-span-2 min-h-10">

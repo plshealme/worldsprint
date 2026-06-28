@@ -17,6 +17,7 @@ import android.webkit.ServiceWorkerController;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -26,6 +27,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends Activity {
     private static final String TRUSTED_HOST = "43.128.23.159.sslip.io";
@@ -96,6 +102,24 @@ public class MainActivity extends Activity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse localWordAsset = loadLocalWordAsset(request.getUrl());
+                if (localWordAsset != null) {
+                    return localWordAsset;
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                WebResourceResponse localWordAsset = loadLocalWordAsset(Uri.parse(url));
+                if (localWordAsset != null) {
+                    return localWordAsset;
+                }
+                return super.shouldInterceptRequest(view, url);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return handleUrl(request.getUrl());
             }
@@ -141,6 +165,41 @@ public class MainActivity extends Activity {
                 showError();
             }
         });
+    }
+
+    private WebResourceResponse loadLocalWordAsset(Uri uri) {
+        if (!isWordDataRequest(uri)) {
+            return null;
+        }
+
+        String fileName = uri.getLastPathSegment();
+        if (fileName == null || !fileName.endsWith(".json")) {
+            return null;
+        }
+
+        try {
+            InputStream stream = getAssets().open("words/" + fileName);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("Cache-Control", "public, max-age=31536000, immutable");
+            headers.put("Access-Control-Allow-Origin", "*");
+            return new WebResourceResponse("application/json", "utf-8", 200, "OK", headers, stream);
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private boolean isWordDataRequest(Uri uri) {
+        if (uri == null) {
+            return false;
+        }
+
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        String path = uri.getPath();
+        if (!("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme))) {
+            return false;
+        }
+        return TRUSTED_HOST.equalsIgnoreCase(host) && path != null && path.startsWith("/data/words/") && path.endsWith(".json");
     }
 
     private boolean handleUrl(Uri uri) {

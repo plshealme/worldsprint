@@ -74,7 +74,6 @@ export function TestSetupWizard({
   onStart: (setup: TestSetup, generation: QuestionGenerationResult) => void;
 }) {
   const { settings, progress, mistakes } = useAppState();
-  const { words, units: wordUnits, loading, error } = useWords({ pageSize: setupWordPageSize });
   const storageKey = `lastSetup:${mode}`;
   const [setup, setSetup] = useState<TestSetup>(() =>
     withEnglishOnlyRatio(readJson<TestSetup>(storageKey, {
@@ -90,6 +89,8 @@ export function TestSetupWizard({
       includeMistakesProgress: true,
     })),
   );
+  const setupUnits = normalizeSetupUnits(setup);
+  const { words, units: wordUnits, loading, error } = useWords({ pageSize: setupWordPageSize, units: setupUnits });
 
   const sections = useMemo(() => Array.from(new Set(words.map((word) => word.section).filter(Boolean))) as string[], [words]);
   const unitWordCounts = useMemo(() => {

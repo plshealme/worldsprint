@@ -1,5 +1,6 @@
 const SHELL_CACHE = "wordsprint-shell-v3";
 const STATIC_CACHE = "wordsprint-static-v3";
+const WORD_DATA_CACHE = "wordsprint-word-data-v1";
 const CORE_ASSETS = [
   "/",
   "/login",
@@ -23,7 +24,7 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  const activeCaches = new Set([SHELL_CACHE, STATIC_CACHE]);
+  const activeCaches = new Set([SHELL_CACHE, STATIC_CACHE, WORD_DATA_CACHE]);
   event.waitUntil(
     caches
       .keys()
@@ -48,6 +49,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (isWordData(url)) {
+    event.respondWith(staleWhileRevalidate(request, WORD_DATA_CACHE));
+    return;
+  }
+
   if (request.mode === "navigate") {
     event.respondWith(networkFirstPage(request));
   }
@@ -69,6 +75,10 @@ function isStaticAsset(url) {
   );
 }
 
+function isWordData(url) {
+  return url.pathname.startsWith("/data/words/");
+}
+
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -81,6 +91,27 @@ async function cacheFirst(request, cacheName) {
     cache.put(request, response.clone()).catch(() => undefined);
   }
   return response;
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const refresh = fetch(request)
+    .then((response) => {
+      if (response.ok) {
+        cache.put(request, response.clone()).catch(() => undefined);
+      }
+      return response;
+    })
+    .catch(() => undefined);
+
+  if (cached) {
+    refresh.catch(() => undefined);
+    return cached;
+  }
+
+  const response = await refresh;
+  return response || Response.error();
 }
 
 async function networkFirstPage(request) {

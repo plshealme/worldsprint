@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { applyMistakeUpdates } from "@/lib/mistakeLogic";
 import { toRecordSummary } from "@/lib/scoring";
 import { clearStoredAccessToken } from "@/lib/authClient";
+import { loadAllWords } from "@/lib/wordLoader";
 import {
   activeUserId,
   defaultSettings,
@@ -75,13 +76,6 @@ interface AuthApiResponse {
   profile?: UserProfile;
   accessToken?: string;
   error?: string;
-}
-
-interface RedbookDemoWord {
-  sourceId?: number;
-  source_id?: number;
-  appOrder?: number;
-  word: string;
 }
 
 function defaultProgress(wordId: string, word = ""): WordProgress {
@@ -650,10 +644,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const generateDemoLearningData = useCallback(() => {
-    void fetch("/data/redbook_words.json", { cache: "force-cache" })
-      .then((response) => (response.ok ? response.json() : []))
-      .then((redbookWordsJson: RedbookDemoWord[]) => {
-        const demoWords = redbookWordsJson as RedbookDemoWord[];
+    void loadAllWords()
+      .then((demoWords) => {
         const shuffled = [...demoWords].sort(() => Math.random() - 0.5);
         const count = Math.min(shuffled.length, 20 + Math.floor(Math.random() * 31));
         const selected = shuffled.slice(0, count);
@@ -662,11 +654,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         const nextMistakes: MistakeItem[] = [];
 
         selected.forEach((word, index) => {
-          const sourceId = word.sourceId ?? word.source_id ?? word.appOrder;
-          if (!sourceId) {
+          if (!word.id) {
             return;
           }
-          const wordId = `redbook-${sourceId}`;
+          const wordId = word.id;
           const attempts = 1 + Math.floor(Math.random() * 8);
           const wrongCount = index % 4 === 0 ? 1 + Math.floor(Math.random() * Math.min(3, attempts)) : Math.floor(Math.random() * 2);
           const correctCount = Math.max(0, attempts - wrongCount);
