@@ -6,9 +6,12 @@ import { createSupabaseServerClient, createSupabaseServiceRoleClient } from "@/l
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  const startedAt = Date.now();
+  console.info("[perf] admin-status start");
   const accessToken = await readAccessToken(request);
 
   if (!accessToken) {
+    console.info("[perf] admin-status end", { ms: Date.now() - startedAt, ok: false, status: 401 });
     return NextResponse.json({ ok: false, isAdmin: false }, { status: 401 });
   }
 
@@ -16,11 +19,13 @@ export async function GET(request: Request) {
   const serviceClient = createSupabaseServiceRoleClient();
 
   if (!supabase || !serviceClient) {
+    console.info("[perf] admin-status end", { ms: Date.now() - startedAt, ok: false, status: 503 });
     return NextResponse.json({ ok: false, isAdmin: false }, { status: 503 });
   }
 
   const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
   if (userError || !userData.user) {
+    console.info("[perf] admin-status end", { ms: Date.now() - startedAt, ok: false, status: 401 });
     return NextResponse.json({ ok: false, isAdmin: false }, { status: 401 });
   }
 
@@ -31,10 +36,12 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (profileError) {
+    console.info("[perf] admin-status end", { ms: Date.now() - startedAt, ok: false, status: 500 });
     return NextResponse.json({ ok: false, isAdmin: false }, { status: 500 });
   }
 
   const isAdmin = profile?.role === "admin";
+  console.info("[perf] admin-status end", { ms: Date.now() - startedAt, ok: true, status: isAdmin ? 200 : 403 });
   return NextResponse.json({ ok: true, isAdmin }, { status: isAdmin ? 200 : 403 });
 }
 

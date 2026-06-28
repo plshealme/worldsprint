@@ -20,7 +20,7 @@ export interface UnitStatsRow {
 
 export async function unitStats(progress: Record<string, WordProgress>, mistakes: MistakeItem[]): Promise<UnitStatsRow[]> {
   const activeMistakes = new Set(mistakes.filter((item) => item.active).map((item) => item.wordId));
-  const { words } = await getLocalWordsResult({ pageSize: OFFICIAL_CLEAN_WORD_COUNT });
+  const { words } = await getLocalWordsResult({ pageSize: OFFICIAL_CLEAN_WORD_COUNT, all: true });
   const units = new Map<string, Omit<UnitStatsRow, "key" | "accuracy">>();
 
   for (const word of words) {

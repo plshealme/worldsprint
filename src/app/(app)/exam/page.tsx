@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle, BarChart3, EyeOff, FileCheck, XCircle } from "lucide-react";
 import { TestReportView } from "@/components/test/TestReportView";
 import { TestRunner } from "@/components/test/TestRunner";
 import { TestSetupWizard } from "@/components/test/TestSetupWizard";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { perfLog } from "@/lib/perfLog";
 import { buildReport } from "@/lib/scoring";
 import type { Question, TestReport, TestSetup } from "@/types/test";
 
@@ -14,6 +15,10 @@ export default function ExamPage() {
   const [setup, setSetup] = useState<TestSetup | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [report, setReport] = useState<TestReport | null>(null);
+
+  useEffect(() => {
+    perfLog("Exam page mounted");
+  }, []);
 
   if (report) {
     return <TestReportView report={report} onRestart={() => setReport(null)} />;

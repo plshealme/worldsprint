@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { FileDown, MoreHorizontal, Printer, RotateCcw } from "lucide-react";
 import { Button, ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { perfLog } from "@/lib/perfLog";
 import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { formatPercent, shortDateTime } from "@/lib/utils";
 import { useWords } from "@/lib/useWords";
@@ -38,6 +39,10 @@ export default function MistakesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    perfLog("Mistakes page mounted");
+  }, []);
 
   const mistakeIds = useMemo(
     () =>

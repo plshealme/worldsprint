@@ -18,6 +18,7 @@ export interface WordQuery {
   section?: string;
   unit?: string | number | null;
   units?: string[];
+  all?: boolean;
   q?: string;
   page?: number;
   pageSize?: number;
@@ -95,5 +96,9 @@ async function loadScopedWords(query: WordQuery, normalizedQuery: string) {
     return loadWordsByUnits(requestedUnits);
   }
 
-  return loadAllWords();
+  if (query.all) {
+    return loadAllWords();
+  }
+
+  return [];
 }

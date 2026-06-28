@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PerfMountLogger } from "@/components/providers/PerfMountLogger";
 import { PwaRegister } from "@/components/providers/PwaRegister";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body>
+        <PerfMountLogger name="app/layout" />
         <PwaRegister />
         {children}
       </body>

@@ -2,9 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { applyMistakeUpdates } from "@/lib/mistakeLogic";
+import { perfLog } from "@/lib/perfLog";
 import { toRecordSummary } from "@/lib/scoring";
 import { clearStoredAccessToken } from "@/lib/authClient";
-import { loadAllWords } from "@/lib/wordLoader";
 import {
   activeUserId,
   defaultSettings,
@@ -236,6 +236,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [records, setRecords] = useState<TestRecordSummary[]>([]);
   const [tempList, setTempList] = useState<TempTestItem[]>([]);
   const [personalTags, setPersonalTags] = useState<PersonalTag[]>([]);
+
+  useEffect(() => {
+    perfLog("AuthProvider mounted");
+  }, []);
 
   const resetSessionState = useCallback(() => {
     setActiveUserId(null);
@@ -644,7 +648,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const generateDemoLearningData = useCallback(() => {
-    void loadAllWords()
+    void import("@/lib/wordLoader")
+      .then(({ loadAllWords }) => loadAllWords())
       .then((demoWords) => {
         const shuffled = [...demoWords].sort(() => Math.random() - 0.5);
         const count = Math.min(shuffled.length, 20 + Math.floor(Math.random() * 31));

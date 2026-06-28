@@ -2,7 +2,6 @@ const SHELL_CACHE = "wordsprint-shell-v3";
 const STATIC_CACHE = "wordsprint-static-v3";
 const WORD_DATA_CACHE = "wordsprint-word-data-v1";
 const CORE_ASSETS = [
-  "/",
   "/login",
   "/manifest.webmanifest",
   "/apple-touch-icon.png",

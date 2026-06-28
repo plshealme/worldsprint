@@ -14,7 +14,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const normalized = query.trim().toLowerCase();
-  const { words, loading, error, source } = useWords({ q: query, pageSize: 100 });
+  const { words, loading, error, source } = useWords({ q: query, pageSize: 100, all: Boolean(query.trim()) });
 
   const results = useMemo(() => {
     if (!normalized) return [];

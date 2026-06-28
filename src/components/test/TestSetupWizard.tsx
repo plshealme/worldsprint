@@ -8,7 +8,9 @@ import { generateQuestions, getAvailableWords, type QuestionGenerationResult } f
 import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { readJson, writeJson } from "@/lib/storage";
 import { useWords } from "@/lib/useWords";
-import { PUBLIC_VOCAB_NAME, PUBLIC_VOCAB_RANGE, PUBLIC_VOCAB_SCOPE } from "@/lib/vocab";
+import { getLocalWordsResult } from "@/lib/localWordsClient";
+import { WORD_UNIT_COUNTS } from "@/lib/wordMeta";
+import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME, PUBLIC_VOCAB_RANGE, PUBLIC_VOCAB_SCOPE } from "@/lib/vocab";
 import type { PracticeMode, QuestionType, TestMode, TestSetup } from "@/types/test";
 
 const setupWordPageSize = 10000;
@@ -75,6 +77,7 @@ export function TestSetupWizard({
 }) {
   const { settings, progress, mistakes } = useAppState();
   const storageKey = `lastSetup:${mode}`;
+  const [starting, setStarting] = useState(false);
   const [setup, setSetup] = useState<TestSetup>(() =>
     withEnglishOnlyRatio(readJson<TestSetup>(storageKey, {
       mode,
@@ -90,11 +93,15 @@ export function TestSetupWizard({
     })),
   );
   const setupUnits = normalizeSetupUnits(setup);
+  const allScopeSelected = setupUnits.length === 0;
   const { words, units: wordUnits, loading, error } = useWords({ pageSize: setupWordPageSize, units: setupUnits });
 
-  const sections = useMemo(() => Array.from(new Set(words.map((word) => word.section).filter(Boolean))) as string[], [words]);
+  const sections = useMemo(() => {
+    const dynamicSections = Array.from(new Set(words.map((word) => word.section).filter(Boolean))) as string[];
+    return dynamicSections.length ? dynamicSections : ["基础词"];
+  }, [words]);
   const unitWordCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, number> = { ...WORD_UNIT_COUNTS };
     for (const word of words) {
       const key = wordSectionUnitKey(word);
       counts[key] = (counts[key] ?? 0) + 1;
@@ -102,9 +109,17 @@ export function TestSetupWizard({
     return counts;
   }, [words]);
   const available = useMemo(() => getAvailableWords(setup, words), [setup, words]);
+  const availableCount = allScopeSelected ? OFFICIAL_CLEAN_WORD_COUNT : available.length;
   const generationPreview = useMemo(
-    () => generateQuestions({ ...setup, questionCount: Math.min(setup.questionCount, 5) }, progress, mistakes, words),
-    [mistakes, progress, setup, words],
+    () =>
+      allScopeSelected && words.length === 0
+        ? {
+            questions: [],
+            warnings: [],
+            rangeStats: { totalWords: OFFICIAL_CLEAN_WORD_COUNT, mistakeWords: 0, unknownWords: 0 },
+          }
+        : generateQuestions({ ...setup, questionCount: Math.min(setup.questionCount, 5) }, progress, mistakes, words),
+    [allScopeSelected, mistakes, progress, setup, words],
   );
 
   function patch(next: Partial<TestSetup>) {
@@ -118,12 +133,23 @@ export function TestSetupWizard({
     }));
   }
 
-  function startWith(nextSetup: TestSetup) {
+  async function startWith(nextSetup: TestSetup) {
     const effectiveSetup = withEnglishOnlyRatio(nextSetup);
-    const generation = generateQuestions(effectiveSetup, progress, mistakes, words);
-    writeJson(storageKey, effectiveSetup);
-    setSetup(effectiveSetup);
-    onStart(effectiveSetup, generation);
+    const units = normalizeSetupUnits(effectiveSetup);
+    setStarting(true);
+    try {
+      const scopedWords = await getLocalWordsResult({
+        pageSize: setupWordPageSize,
+        units,
+        all: units.length === 0,
+      });
+      const generation = generateQuestions(effectiveSetup, progress, mistakes, scopedWords.words);
+      writeJson(storageKey, effectiveSetup);
+      setSetup(effectiveSetup);
+      onStart(effectiveSetup, generation);
+    } finally {
+      setStarting(false);
+    }
   }
 
   const sharedProps = {
@@ -134,8 +160,8 @@ export function TestSetupWizard({
     sections,
     wordUnits,
     unitWordCounts,
-    availableCount: available.length,
-    loading,
+    availableCount,
+    loading: loading || starting,
     error,
     generationPreview,
     onStart: startWith,
@@ -160,7 +186,7 @@ type SharedSetupProps = {
   loading: boolean;
   error: string | null;
   generationPreview: QuestionGenerationResult;
-  onStart: (setup: TestSetup) => void;
+  onStart: (setup: TestSetup) => void | Promise<void>;
 };
 
 function PracticeQuickSetup({
@@ -179,12 +205,13 @@ function PracticeQuickSetup({
 }: SharedSetupProps) {
   const savedSetup = readJson<TestSetup | null>(storageKey, null);
   const lastSetup = savedSetup ? withEnglishOnlyRatio(savedSetup) : null;
-  const canStart = !loading && availableCount > 0 && generationPreview.questions.length > 0;
+  const canGenerateCurrentScope = setup.units.length === 0 || generationPreview.questions.length > 0;
+  const canStart = !loading && availableCount > 0 && canGenerateCurrentScope;
   const disabledReason = loading
     ? "正在读取词库"
     : availableCount === 0
       ? "当前范围暂无可练习词"
-      : generationPreview.questions.length === 0
+      : !canGenerateCurrentScope
         ? "当前条件不足，无法生成题目"
         : "";
 
@@ -331,12 +358,13 @@ function ExamSetupWizard({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const savedSetup = readJson<TestSetup | null>(storageKey, null);
   const lastSetup = savedSetup ? withEnglishOnlyRatio(savedSetup) : null;
-  const canStart = !loading && availableCount > 0 && generationPreview.questions.length > 0;
+  const canGenerateCurrentScope = setup.units.length === 0 || generationPreview.questions.length > 0;
+  const canStart = !loading && availableCount > 0 && canGenerateCurrentScope;
   const disabledReason = loading
     ? "正在读取词库"
     : availableCount === 0
       ? "当前范围暂无可测试词"
-      : generationPreview.questions.length === 0
+      : !canGenerateCurrentScope
         ? "当前条件不足，无法生成试卷"
         : "";
 

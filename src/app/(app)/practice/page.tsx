@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { TestReportView, type PracticeRoundSummary } from "@/components/test/TestReportView";
 import { TestRunner } from "@/components/test/TestRunner";
 import { TestSetupWizard } from "@/components/test/TestSetupWizard";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { perfLog } from "@/lib/perfLog";
 import { buildReport } from "@/lib/scoring";
 import type { Question, TestReport, TestSetup } from "@/types/test";
 import type { WordProgress } from "@/types/word";
@@ -17,6 +18,10 @@ export default function PracticePage() {
   const [report, setReport] = useState<TestReport | null>(null);
   const [practiceSummary, setPracticeSummary] = useState<PracticeRoundSummary | null>(null);
   const [startProgress, setStartProgress] = useState<Record<string, WordProgress>>({});
+
+  useEffect(() => {
+    perfLog("Practice page mounted");
+  }, []);
 
   if (report) {
     return <TestReportView report={report} practiceSummary={practiceSummary} onRestart={() => setReport(null)} />;

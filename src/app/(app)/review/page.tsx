@@ -6,6 +6,7 @@ import { BookOpen, CheckCircle2, Heart, Plus, Search, Star, Tag, XCircle } from 
 import { Button, ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { ReviewCard } from "@/components/review/ReviewCard";
+import { perfLog } from "@/lib/perfLog";
 import { sectionUnitLabelFromKey, wordSectionUnitKey } from "@/lib/sectionUnit";
 import { useWords } from "@/lib/useWords";
 import { formatPercent, masteryName } from "@/lib/utils";
@@ -30,6 +31,11 @@ export default function ReviewPage() {
   const [mastery, setMastery] = useState<"" | MasteryStatus>("");
   const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    perfLog("Review page mounted");
+  }, []);
+
   const dueIds = useMemo(() => {
     const now = Date.now();
     return Object.values(progress)
@@ -39,7 +45,7 @@ export default function ReviewPage() {
   const wordQuery =
     view === "due"
       ? { ids: dueIds.length ? dueIds : ["__none__"], pageSize: Math.max(dueIds.length, 1), q: query }
-      : { page, pageSize, unit, q: query };
+      : { page, pageSize, unit, q: query, all: !unit };
   const { words, units, loading, error } = useWords(wordQuery);
 
   useEffect(() => {

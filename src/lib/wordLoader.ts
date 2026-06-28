@@ -1,7 +1,8 @@
 "use client";
 
 import { PUBLIC_VOCAB_NAME } from "@/lib/vocab";
-import { compareSectionUnitKeys, formatUnit, parseUnitValue, wordSectionUnitKey } from "@/lib/sectionUnit";
+import { perfLog, perfNow } from "@/lib/perfLog";
+import { compareSectionUnitKeys, formatUnit, parseUnitValue } from "@/lib/sectionUnit";
 import { getWordMeta } from "@/lib/wordMeta";
 import type { WordEntry } from "@/types/word";
 
@@ -58,8 +59,9 @@ export { getWordMeta };
 
 export async function loadWordsByUnits(units: Array<string | number | null | undefined>) {
   const normalizedUnits = normalizeUnitList(units);
-  if (normalizedUnits.length === 0 || normalizedUnits.length >= WORD_UNIT_COUNT) {
-    return loadAllWords();
+  perfLog("loadWordsByUnits called", { count: normalizedUnits.length, units: normalizedUnits });
+  if (normalizedUnits.length === 0) {
+    return [];
   }
 
   const chunks = await Promise.all(normalizedUnits.map((unit) => loadUnitWords(unit)));
@@ -67,10 +69,21 @@ export async function loadWordsByUnits(units: Array<string | number | null | und
 }
 
 export async function loadAllWords() {
+  perfLog("loadAllWords called");
   if (!allWordsPromise) {
-    allWordsPromise = Promise.all(Array.from({ length: WORD_UNIT_COUNT }, (_, index) => loadUnitWords(index + 1))).then((chunks) =>
-      sortWords(chunks.flat()),
-    );
+    const startedAt = perfNow();
+    allWordsPromise = Promise.all(Array.from({ length: WORD_UNIT_COUNT }, (_, index) => loadUnitWords(index + 1)))
+      .then((chunks) => sortWords(chunks.flat()))
+      .then((words) => {
+        perfLog("loadAllWords end", { total: words.length, ms: Math.round(perfNow() - startedAt) });
+        return words;
+      })
+      .catch((error) => {
+        allWordsPromise = null;
+        throw error;
+      });
+  } else {
+    perfLog("loadAllWords reused");
   }
   return allWordsPromise;
 }
@@ -95,6 +108,10 @@ export async function loadWordsByIds(ids: string[]) {
       }
     }
 
+    perfLog("loadWordsByIds units", {
+      ids: uniqueIds.length,
+      units: Array.from(idsByUnit.keys()).sort((a, b) => a - b),
+    });
     await Promise.all(Array.from(idsByUnit.keys()).map((unit) => loadUnitWords(unit)));
   }
 
@@ -103,6 +120,8 @@ export async function loadWordsByIds(ids: string[]) {
 
 export async function loadWordIndex() {
   if (!indexPromise) {
+    perfLog("loadWordIndex called");
+    const startedAt = perfNow();
     indexPromise = fetch("/data/words/index.json", { cache: "force-cache" })
       .then((response) => {
         if (!response.ok) {
@@ -114,8 +133,15 @@ export async function loadWordIndex() {
         rows.forEach((row) => {
           unitsByIdCache.set(row.id, row.unit);
         });
+        perfLog("loadWordIndex end", { rows: rows.length, ms: Math.round(perfNow() - startedAt) });
         return rows;
+      })
+      .catch((error) => {
+        indexPromise = null;
+        throw error;
       });
+  } else {
+    perfLog("loadWordIndex reused");
   }
   return indexPromise;
 }
@@ -136,14 +162,18 @@ async function loadUnitWords(unit: number) {
 
   const cached = unitWordsCache.get(normalizedUnit);
   if (cached) {
+    perfLog("loadUnitWords cache hit", { unit: normalizedUnit });
     return cached;
   }
 
   const existingPromise = unitPromiseCache.get(normalizedUnit);
   if (existingPromise) {
+    perfLog("loadUnitWords promise reused", { unit: normalizedUnit });
     return existingPromise;
   }
 
+  perfLog("loadUnitWords called", { unit: normalizedUnit });
+  const startedAt = perfNow();
   const promise = fetch(`/data/words/${unitFileName(normalizedUnit)}`, { cache: "force-cache" })
     .then((response) => {
       if (!response.ok) {
@@ -156,13 +186,16 @@ async function loadUnitWords(unit: number) {
       unitWordsCache.set(normalizedUnit, words);
       for (const word of words) {
         wordsByIdCache.set(word.id, word);
-        if (word.unit) {
-          const unitValue = parseUnitValue(word.unit);
-          if (unitValue) {
-            unitsByIdCache.set(word.id, unitValue);
-          }
+        const unitValue = parseUnitValue(word.unit);
+        if (unitValue) {
+          unitsByIdCache.set(word.id, unitValue);
         }
       }
+      perfLog("loadUnitWords end", {
+        unit: normalizedUnit,
+        total: words.length,
+        ms: Math.round(perfNow() - startedAt),
+      });
       return words;
     })
     .finally(() => {
@@ -197,19 +230,11 @@ function redbookSourceOrder(row: RedbookJsonWord) {
   return row.sourceOrder ?? row.source_order ?? row.appOrder ?? 0;
 }
 
-function redbookAppOrder(row: RedbookJsonWord) {
-  return row.appOrder ?? redbookSourceOrder(row) ?? redbookSourceId(row);
-}
-
-function redbookWordId(sourceId: number) {
-  return `redbook-${sourceId}`;
-}
-
 function redbookJsonWordToEntry(row: RedbookJsonWord): WordEntry {
   const sourceId = redbookSourceId(row);
   const sourceOrder = redbookSourceOrder(row);
   return {
-    id: redbookWordId(sourceId),
+    id: `redbook-${sourceId}`,
     word: row.word,
     appOrder: row.appOrder,
     wordRaw: cleanNullable(row.wordRaw ?? row.word_raw),
@@ -238,7 +263,9 @@ function redbookJsonWordToEntry(row: RedbookJsonWord): WordEntry {
 }
 
 function sortWords(words: WordEntry[]) {
-  return words.slice().sort((a, b) => (a.appOrder ?? a.sourceOrder ?? a.sourceId ?? 0) - (b.appOrder ?? b.sourceOrder ?? b.sourceId ?? 0));
+  return words
+    .slice()
+    .sort((a, b) => (a.appOrder ?? a.sourceOrder ?? a.sourceId ?? 0) - (b.appOrder ?? b.sourceOrder ?? b.sourceId ?? 0));
 }
 
 function cleanNullable(value: string | null | undefined) {

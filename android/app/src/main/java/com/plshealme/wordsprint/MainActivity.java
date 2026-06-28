@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -184,6 +185,7 @@ public class MainActivity extends Activity {
             headers.put("Access-Control-Allow-Origin", "*");
             return new WebResourceResponse("application/json", "utf-8", 200, "OK", headers, stream);
         } catch (IOException ignored) {
+            Log.w("WordSprint", "word asset fallback network: " + fileName);
             return null;
         }
     }

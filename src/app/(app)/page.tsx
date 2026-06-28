@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowRight, BookOpen, ClipboardList, RotateCcw, ShieldCheck, Target, TrendingUp } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ButtonLink } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
+import { perfLog } from "@/lib/perfLog";
 import { computeLearningStats } from "@/lib/stats";
 import { formatPercent, levelFromXp, shortDateTime } from "@/lib/utils";
 import { PUBLIC_VOCAB_NAME } from "@/lib/vocab";
@@ -42,6 +43,13 @@ export default function HomePage() {
   const todayPracticed = countTodayPracticed(progress);
   const dailyGoal = 20;
   const recentRecord = stats.lastRecord;
+  useEffect(() => {
+    perfLog("Home mounted");
+    if (window.sessionStorage.getItem("wordsprint:authRedirecting") === "1") {
+      window.sessionStorage.removeItem("wordsprint:authRedirecting");
+      perfLog("route to home end");
+    }
+  }, []);
   const ctaText = todayPracticed > 0 ? "继续练习" : "开始练习";
 
   return (

@@ -1,11 +1,12 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LockKeyhole, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { postAuthProfile } from "@/lib/authClient";
+import { perfLog, perfNow } from "@/lib/perfLog";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
 
 const featureTags = ["Practice 即时反馈", "Exam 正式测试", "Review 到期复习", "Mistakes 易错词巩固"];
@@ -51,10 +52,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    perfLog("Login mounted");
+  }, []);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submittingRef.current) return;
 
+    const submitStartedAt = perfNow();
+    perfLog("login submit start");
     submittingRef.current = true;
     setError("");
     setIsSubmitting(true);
@@ -64,8 +71,10 @@ export default function LoginPage() {
         identifier: identifier.trim().toLowerCase(),
         password,
       });
+      perfLog("client loginSubmit", { ms: Math.round(perfNow() - submitStartedAt) });
       window.sessionStorage.setItem("wordsprint:authRedirecting", "1");
       shouldResetSubmitState = false;
+      perfLog("route to home start");
       router.replace("/");
     } catch (err) {
       setError(friendlyLoginError(err));
