@@ -18,14 +18,16 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: pnpm
-
-      - name: Enable pnpm
-        run: corepack enable
 
       - name: Install web dependencies
         run: pnpm install --frozen-lockfile
