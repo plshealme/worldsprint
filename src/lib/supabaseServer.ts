@@ -42,16 +42,22 @@ export function supabaseAuthEnvState() {
 }
 
 export function logSupabaseAuthDiagnostic(event: string, details: AuthDiagnosticDetails = {}) {
+  const status = details.status ?? errorStatus(details.error);
   const safeDetails = {
     event,
     ...supabaseAuthEnvState(),
     phase: details.phase,
     errorName: details.error ? errorName(details.error) : undefined,
     errorMessage: details.error ? errorMessage(details.error) : undefined,
-    errorStatus: details.status ?? errorStatus(details.error),
+    errorStatus: status,
   };
 
-  console.info("[wordsprint-auth]", safeDetails);
+  if (details.error || (typeof status === "number" && status >= 400)) {
+    console.error("[wordsprint-auth]", safeDetails);
+    return;
+  }
+
+  console.log("[wordsprint-auth]", safeDetails);
 }
 
 export function createSupabaseServerClient(accessToken?: string) {
