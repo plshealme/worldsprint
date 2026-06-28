@@ -11,6 +11,9 @@ interface RegisterPayload {
   password?: unknown;
 }
 
+const authConfigMissingMessage = "服务器登录配置缺失，请检查部署环境变量。";
+const registerUnavailableMessage = "注册服务暂不可用，请稍后再试。";
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as RegisterPayload | null;
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
@@ -29,12 +32,12 @@ export async function POST(request: Request) {
   let supabase;
   try {
     supabase = createSupabaseServerClient();
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Supabase 配置无效。" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 500 });
   }
 
   if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Supabase 环境变量未配置，无法注册真实账号。" }, { status: 503 });
+    return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 503 });
   }
 
   try {
@@ -54,20 +57,20 @@ export async function POST(request: Request) {
     if (error) {
       const status = isSupabaseNetworkError(error) ? 502 : 400;
       return NextResponse.json(
-        { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : error.message },
+        { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : "注册失败，请检查邮箱和密码后重试。" },
         { status },
       );
     }
 
     if (!data.user) {
-      return NextResponse.json({ ok: false, error: "Supabase 未返回用户信息，注册未完成。" }, { status: 502 });
+      return NextResponse.json({ ok: false, error: registerUnavailableMessage }, { status: 502 });
     }
 
     if (!data.session) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Supabase 当前启用了邮箱确认。请在 Supabase Auth 中关闭 Confirm email 后再直接登录。",
+          error: "注册成功，请前往邮箱完成确认后再登录。",
         },
         { status: 409 },
       );
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: isSupabaseNetworkError(error) ? supabaseNetworkErrorMessage : "服务端注册请求失败，请稍后重试。",
+        error: isSupabaseNetworkError(error) ? supabaseNetworkErrorMessage : registerUnavailableMessage,
       },
       { status: isSupabaseNetworkError(error) ? 502 : 500 },
     );

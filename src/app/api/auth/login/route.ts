@@ -10,6 +10,10 @@ interface LoginPayload {
   password?: unknown;
 }
 
+const authConfigMissingMessage = "服务器登录配置缺失，请检查部署环境变量。";
+const invalidCredentialsMessage = "邮箱或密码不正确。";
+const loginUnavailableMessage = "登录服务暂不可用，请稍后再试。";
+
 function isDevAuthBypassEnabled() {
   return (
     process.env.NODE_ENV !== "production" &&
@@ -71,12 +75,12 @@ export async function POST(request: Request) {
   let supabase;
   try {
     supabase = createSupabaseServerClient();
-  } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Supabase 配置无效。" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 500 });
   }
 
   if (!supabase) {
-    return NextResponse.json({ ok: false, error: "Supabase 环境变量未配置，无法登录真实账号。" }, { status: 503 });
+    return NextResponse.json({ ok: false, error: authConfigMissingMessage }, { status: 503 });
   }
 
   try {
@@ -88,13 +92,13 @@ export async function POST(request: Request) {
     if (error) {
       const status = isSupabaseNetworkError(error) ? 502 : 401;
       return NextResponse.json(
-        { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : error.message },
+        { ok: false, error: status === 502 ? supabaseNetworkErrorMessage : invalidCredentialsMessage },
         { status },
       );
     }
 
     if (!data.user || !data.session) {
-      return NextResponse.json({ ok: false, error: "Supabase 未返回登录会话。" }, { status: 502 });
+      return NextResponse.json({ ok: false, error: loginUnavailableMessage }, { status: 502 });
     }
 
     const response = NextResponse.json({ ok: true, profile: profileFromSupabaseUser(data.user) });
@@ -104,7 +108,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: isSupabaseNetworkError(error) ? supabaseNetworkErrorMessage : "服务端登录请求失败，请稍后重试。",
+        error: isSupabaseNetworkError(error) ? supabaseNetworkErrorMessage : loginUnavailableMessage,
       },
       { status: isSupabaseNetworkError(error) ? 502 : 500 },
     );

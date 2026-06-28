@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/supabase";
 
 export const supabaseNetworkErrorMessage =
-  "服务端访问 Supabase 失败。当前本机网络无法连接 Supabase，后续部署到 Vercel 后再验证。";
+  "暂时无法连接登录服务，请稍后再试。";
 
 export function createSupabaseServerClient(accessToken?: string) {
   if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
