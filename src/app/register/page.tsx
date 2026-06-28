@@ -8,6 +8,8 @@ import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
 
+const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
+
 function friendlyRegisterError(error: unknown) {
   const message = error instanceof Error ? error.message : "注册失败，请稍后重试。";
   const lowerMessage = message.toLowerCase();
@@ -17,6 +19,10 @@ function friendlyRegisterError(error: unknown) {
     message.includes("暂时无法连接登录服务") ||
     message.includes("注册服务暂不可用")
   ) {
+    return message;
+  }
+
+  if (message.includes("用户名")) {
     return message;
   }
 
@@ -50,6 +56,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,9 +67,19 @@ export default function RegisterPage() {
 
     setError("");
     setNotice("");
+    const cleanUsername = username.trim();
+    if (!usernamePattern.test(cleanUsername)) {
+      setError("用户名需为 3–20 个字符，只能包含英文字母、数字和下划线。");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("两次输入的密码不一致。");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await register(email, username, password);
+      await register(email, cleanUsername, password);
       router.replace("/");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
@@ -86,9 +103,9 @@ export default function RegisterPage() {
 
         <form onSubmit={onSubmit} className="rounded-2xl border border-line bg-panel p-6 shadow-soft">
           <p className="text-sm font-semibold text-brand">Register</p>
-          <h1 className="mt-2 text-2xl font-bold">创建 WordSprint 账号</h1>
+          <h1 className="mt-2 text-2xl font-bold">注册 WordSprint</h1>
           <p className="mt-2 text-sm leading-6 text-subtle">
-            开始你的词汇练习。当前词库为{PUBLIC_VOCAB_NAME}，共 {OFFICIAL_CLEAN_WORD_COUNT} 词。
+            创建账号，开始你的考研英语词汇练习。当前词库为{PUBLIC_VOCAB_NAME}，共 {OFFICIAL_CLEAN_WORD_COUNT} 词。
           </p>
 
           <label className="mt-6 block">
@@ -101,6 +118,7 @@ export default function RegisterPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
+            <p className="mt-2 text-xs leading-5 text-subtle">邮箱用于找回密码，请填写真实可用邮箱。</p>
           </label>
 
           <label className="mt-4 block">
@@ -112,6 +130,7 @@ export default function RegisterPage() {
               onChange={(event) => setUsername(event.target.value)}
               required
             />
+            <p className="mt-2 text-xs leading-5 text-subtle">3–20 个字符，可使用英文字母、数字和下划线，不区分大小写。</p>
           </label>
 
           <label className="mt-4 block">
@@ -127,11 +146,24 @@ export default function RegisterPage() {
             />
           </label>
 
+          <label className="mt-4 block">
+            <span className="text-sm font-semibold">确认密码</span>
+            <input
+              className="mt-2 min-h-12 w-full rounded-xl border border-line bg-surface px-3 outline-none"
+              type="password"
+              minLength={6}
+              value={confirmPassword}
+              autoComplete="new-password"
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              required
+            />
+          </label>
+
           {notice ? <p className="mt-4 rounded-lg bg-positive/10 px-3 py-2 text-sm text-positive">{notice}</p> : null}
           {error ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p> : null}
 
           <Button className="mt-6 w-full" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "注册中..." : "注册并开始"}
+            {isSubmitting ? "注册中..." : "注册"}
             {!isSubmitting ? <ArrowRight size={18} /> : null}
           </Button>
 

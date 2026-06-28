@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download, Eye, FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
@@ -21,12 +23,58 @@ interface AuditReport {
 
 export default function AdminPage() {
   const { user } = useAppState();
+  const router = useRouter();
+  const [access, setAccess] = useState<"checking" | "allowed" | "denied">("checking");
 
-  if (!user?.isAdmin) {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function verifyAdmin() {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      if (!user.isAdmin) {
+        setAccess("denied");
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/auth/admin-status", { credentials: "include" });
+        const data = (await response.json().catch(() => null)) as { isAdmin?: boolean } | null;
+        if (cancelled) return;
+
+        if (response.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        setAccess(response.ok && data?.isAdmin === true ? "allowed" : "denied");
+      } catch {
+        if (!cancelled) setAccess("denied");
+      }
+    }
+
+    void verifyAdmin();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, user]);
+
+  if (access === "checking") {
+    return (
+      <section className="rounded-lg border border-line bg-panel p-8 text-center shadow-soft">
+        <h1 className="text-2xl font-bold">正在校验权限</h1>
+        <p className="mt-2 text-sm text-subtle">请稍候。</p>
+      </section>
+    );
+  }
+
+  if (access !== "allowed") {
     return (
       <section className="rounded-lg border border-line bg-panel p-8 text-center shadow-soft">
         <h1 className="text-2xl font-bold">无权限访问</h1>
-        <p className="mt-2 text-sm text-subtle">普通用户不会在账户菜单中看到 Admin，后台接口后续也需要做权限校验。</p>
+        <p className="mt-2 text-sm text-subtle">普通用户不能访问管理员后台。</p>
       </section>
     );
   }

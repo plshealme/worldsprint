@@ -189,7 +189,7 @@ function PracticeQuickSetup({
         : "";
 
   return (
-    <div className="space-y-4 pb-28 md:pb-0">
+    <div className="space-y-4 pb-4 md:pb-0">
       <section className="rounded-lg border border-line bg-panel p-4 shadow-soft md:p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -278,6 +278,21 @@ function PracticeQuickSetup({
         </div>
       </details>
 
+      <section className="rounded-lg border border-line bg-panel p-4 shadow-soft md:hidden">
+        {disabledReason ? (
+          <p className="mb-3 rounded-lg bg-warning/10 px-3 py-2 text-center text-xs text-warning">
+            {disabledReason}
+          </p>
+        ) : null}
+        <Button
+          className="min-h-[52px] w-full rounded-2xl text-base font-bold shadow-sm disabled:!bg-muted disabled:!text-subtle disabled:!opacity-100"
+          onClick={() => onStart(setup)}
+          disabled={!canStart}
+        >
+          开始 {setup.questionCount} 题练习
+        </Button>
+      </section>
+
       <section className="hidden rounded-lg border border-line bg-panel p-5 shadow-soft md:block">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <PreviewItem label="范围内词数" value={availableCount} />
@@ -295,23 +310,6 @@ function PracticeQuickSetup({
           开始练习 {setup.questionCount} 题
         </Button>
       </section>
-
-      <div className="pointer-events-none fixed bottom-24 left-0 right-0 z-20 md:hidden">
-        <div className="mx-auto max-w-7xl px-4">
-        {disabledReason ? (
-          <p className="pointer-events-auto mb-2 rounded-xl bg-panel/95 px-3 py-2 text-center text-xs text-warning shadow-soft">
-            {disabledReason}
-          </p>
-        ) : null}
-        <Button
-          className="pointer-events-auto min-h-[52px] w-full rounded-2xl text-base font-bold shadow-md disabled:!bg-muted disabled:!text-subtle disabled:!opacity-100"
-          onClick={() => onStart(setup)}
-          disabled={!canStart}
-        >
-          开始 {setup.questionCount} 题练习
-        </Button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -25,7 +25,7 @@ const bottomNavItems = [
   { href: "/profile", label: "Profile", icon: User },
 ];
 
-const authPaths = ["/login", "/register"];
+const authPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

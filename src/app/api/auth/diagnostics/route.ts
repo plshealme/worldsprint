@@ -10,6 +10,7 @@ export async function GET() {
     {
       hasSupabaseUrl: state.supabaseUrlExists,
       hasSupabaseAnonKey: state.supabaseAnonKeyExists,
+      hasSupabaseServiceRoleKey: state.supabaseServiceRoleKeyExists,
       nodeEnv: state.nodeEnv,
     },
     {

@@ -119,7 +119,7 @@ export default function MistakesPage() {
   }
 
   return (
-    <div className="space-y-4 pb-36 md:space-y-6 md:pb-0">
+    <div className="space-y-4 pb-4 md:space-y-6 md:pb-0">
       <section className="rounded-lg border border-line bg-panel p-4 shadow-soft md:p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -136,10 +136,7 @@ export default function MistakesPage() {
             ) : null}
             <ButtonLink href="/temp-list" onClick={addAllToTemp} aria-disabled={!hasMistakes || loading} className={!hasMistakes || loading ? "pointer-events-none opacity-50" : undefined}>
               <RotateCcw size={17} />
-              <span className="flex flex-col items-start leading-tight">
-                <span>开始错题专项</span>
-                <span className="text-xs font-medium opacity-80">本次 {filtered.length} 词</span>
-              </span>
+              开始错题专项 {filtered.length} 词
             </ButtonLink>
           </div>
         </div>
@@ -269,18 +266,6 @@ export default function MistakesPage() {
           ))}
         </section>
       )}
-
-      <div className="fixed bottom-20 left-4 right-4 z-30 md:hidden">
-        {!hasMistakes ? <p className="mb-2 rounded-full bg-panel px-3 py-1 text-center text-xs font-semibold text-subtle shadow-soft">暂无错题</p> : null}
-        <ButtonLink
-          href="/temp-list"
-          onClick={addAllToTemp}
-          aria-disabled={!hasMistakes || loading}
-          className={`min-h-12 w-full shadow-soft ${!hasMistakes || loading ? "pointer-events-none opacity-50" : ""}`}
-        >
-          开始错题专项 {filtered.length} 词
-        </ButtonLink>
-      </div>
     </div>
   );
 }

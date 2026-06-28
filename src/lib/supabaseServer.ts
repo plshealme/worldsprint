@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabaseAnonKey, supabaseUrl } from "@/lib/supaba
 
 export const supabaseNetworkErrorMessage =
   "暂时无法连接登录服务，请稍后再试。";
+export const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 type AuthDiagnosticDetails = {
   phase?: string;
@@ -38,6 +39,7 @@ export function supabaseAuthEnvState() {
     authEnv: isSupabaseConfigured ? "exists" : "missing",
     supabaseUrlExists: Boolean(supabaseUrl),
     supabaseAnonKeyExists: Boolean(supabaseAnonKey),
+    supabaseServiceRoleKeyExists: Boolean(supabaseServiceRoleKey),
   };
 }
 
@@ -86,6 +88,24 @@ export function createSupabaseServerClient(accessToken?: string) {
           },
         }
       : undefined,
+  });
+}
+
+export function createSupabaseServiceRoleClient() {
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return null;
+  }
+
+  if (supabaseUrl.includes("/rest/v1")) {
+    throw new Error("Supabase URL 应为项目根地址，不能使用带 /rest/v1/ 的 API URL。");
+  }
+
+  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   });
 }
 

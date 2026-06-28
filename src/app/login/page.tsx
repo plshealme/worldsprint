@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LockKeyhole, Mail } from "lucide-react";
+import { ArrowRight, LockKeyhole, User } from "lucide-react";
 import { Button } from "@/components/common/Button";
 import { useAppState } from "@/components/providers/AppStateProvider";
 import { OFFICIAL_CLEAN_WORD_COUNT, PUBLIC_VOCAB_NAME } from "@/lib/vocab";
@@ -23,13 +23,13 @@ function friendlyLoginError(error: unknown) {
   }
 
   if (
+    message.includes("用户名") ||
+    message.includes("密码") ||
     lowerMessage.includes("invalid") ||
     lowerMessage.includes("credential") ||
-    lowerMessage.includes("incorrect") ||
-    message.includes("邮箱") ||
-    message.includes("密码")
+    lowerMessage.includes("incorrect")
   ) {
-    return "邮箱或密码不正确。";
+    return "用户名或密码错误";
   }
 
   if (lowerMessage.includes("fetch") || lowerMessage.includes("network") || message.includes("连接")) {
@@ -46,7 +46,7 @@ function friendlyLoginError(error: unknown) {
 export default function LoginPage() {
   const { login } = useAppState();
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +58,7 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       router.replace("/");
     } catch (err) {
       setError(friendlyLoginError(err));
@@ -119,19 +119,20 @@ export default function LoginPage() {
             <div>
               <p className="text-sm font-semibold text-brand">Login</p>
               <h2 className="mt-2 text-2xl font-bold">登录 WordSprint</h2>
-              <p className="mt-2 text-sm text-subtle">使用邮箱登录，继续你的词汇练习。</p>
+              <p className="mt-2 text-sm text-subtle">使用用户名登录，继续你的词汇练习。</p>
             </div>
 
             <label className="mt-6 block">
-              <span className="text-sm font-semibold">邮箱</span>
+              <span className="text-sm font-semibold">用户名</span>
               <span className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-surface px-3">
-                <Mail size={18} className="text-subtle" />
+                <User size={18} className="text-subtle" />
                 <input
                   className="min-h-12 w-full bg-transparent outline-none"
-                  type="email"
-                  value={email}
-                  autoComplete="email"
-                  onChange={(event) => setEmail(event.target.value)}
+                  type="text"
+                  value={identifier}
+                  placeholder="请输入用户名"
+                  autoComplete="username"
+                  onChange={(event) => setIdentifier(event.target.value)}
                   required
                 />
               </span>
@@ -153,7 +154,11 @@ export default function LoginPage() {
               </span>
             </label>
 
-            <p className="mt-3 text-right text-xs font-semibold text-subtle">忘记密码暂未开放</p>
+            <div className="mt-3 text-right">
+              <Link href="/forgot-password" className="text-xs font-semibold text-brand">
+                忘记密码？
+              </Link>
+            </div>
 
             {error ? <p className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p> : null}
 

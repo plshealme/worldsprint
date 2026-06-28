@@ -37,7 +37,7 @@ interface AppStateContextValue {
   records: TestRecordSummary[];
   tempList: TempTestItem[];
   personalTags: PersonalTag[];
-  login: (email: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   completeOnboarding: () => void;
@@ -201,7 +201,7 @@ function mergePersistedProfile(profile: UserProfile) {
     firstLoginDone: persisted.firstLoginDone,
     xp: Math.max(profile.xp, persisted.xp),
     badges: persisted.badges.length ? persisted.badges : profile.badges,
-    isAdmin: profile.isAdmin || persisted.isAdmin,
+    isAdmin: profile.isAdmin,
   };
 }
 
@@ -327,12 +327,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   }, [authMode]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const normalizedEmail = email.trim().toLowerCase();
+    async (identifier: string, password: string) => {
+      const normalizedIdentifier = identifier.trim().toLowerCase();
 
       if (authMode === "supabase" || authMode === "dev") {
         const profile = await postAuth("/api/auth/login", {
-          email: normalizedEmail,
+          identifier: normalizedIdentifier,
           password,
         });
         hydrateProfile(profile);
@@ -340,9 +340,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }
 
       const accounts = ensureDemoAccount(getAccounts());
-      const account = accounts.find((item) => item.profile.email.toLowerCase() === normalizedEmail);
+      const account = accounts.find((item) =>
+        normalizedIdentifier.includes("@")
+          ? item.profile.email.toLowerCase() === normalizedIdentifier
+          : item.profile.username.toLowerCase() === normalizedIdentifier,
+      );
       if (!account || account.password !== password) {
-        throw new Error("Email or password is incorrect. Demo: demo@wordsprint.app / 123456.");
+        throw new Error("用户名或密码错误");
       }
       saveAccounts(accounts);
       hydrateAccount(account);
@@ -378,7 +382,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           id: uid("user"),
           email: normalizedEmail,
           username: cleanUsername,
-          isAdmin: normalizedEmail.includes("admin"),
+          isAdmin: false,
           firstLoginDone: false,
           xp: 0,
           badges: [],
@@ -829,19 +833,6 @@ function ensureDemoAccount(accounts: LocalAccount[]) {
         isAdmin: false,
         firstLoginDone: true,
         xp: 260,
-        badges: [],
-        createdAt: new Date().toISOString(),
-      },
-    },
-    {
-      password: "123456",
-      profile: {
-        id: "user-admin",
-        email: "admin@wordsprint.app",
-        username: "Admin",
-        isAdmin: true,
-        firstLoginDone: true,
-        xp: 760,
         badges: [],
         createdAt: new Date().toISOString(),
       },
