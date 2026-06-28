@@ -1,0 +1,21 @@
+{
+  "packageId": "com.plshealme.wordsprint",
+  "host": "43.128.23.159.sslip.io",
+  "name": "WordSprint",
+  "launcherName": "WordSprint",
+  "display": "standalone",
+  "themeColor": "#071633",
+  "themeColorDark": "#071633",
+  "navigationColor": "#071633",
+  "navigationColorDark": "#071633",
+  "backgroundColor": "#071633",
+  "startUrl": "/",
+  "orientation": "portrait",
+  "versionName": "1.2.0",
+  "versionCode": 12,
+  "appVersionName": "1.2.0",
+  "appVersionCode": 12,
+  "shortcuts": [],
+  "generatorApp": "WordSprint manual TWA project",
+  "webManifestUrl": "https://43.128.23.159.sslip.io/manifest.webmanifest"
+}

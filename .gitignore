@@ -26,3 +26,12 @@ data/*.build-report.json
 data/*.skipped.json
 data/*.duplicates.json
 data/*.stats.json
+
+# Android local build/signing artifacts
+android/.gradle/
+android/**/build/
+android/local.properties
+android/key.properties
+android/*.jks
+android/*.keystore
+android/**/keystores/

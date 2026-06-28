@@ -1,0 +1,35 @@
+name: Android Debug APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-debug-apk:
+    name: Build WordSprint debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WordSprint-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
